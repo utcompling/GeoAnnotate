@@ -8,6 +8,7 @@
     <!--<script src="http://maps.gstatic.com/maps-api-v3/api/js/20/0/main.js"></script><script src="http://maps.gstatic.com/maps-api-v3/api/js/20/0/adsense.js"></script>-->
     <!--<script src="http://maps.gstatic.com/maps-api-v3/api/js/20/0/geometry.js"></script><script src="http://maps.gstatic.com/maps-api-v3/api/js/20/0/zombie.js"></script>-->
     <script src="openlayers/lib/OpenLayers.js"></script>
+    <script src="//www.parsecdn.com/js/parse-1.3.5.min.js"></script>
     <!--[if lte IE 6]>
         <style>
             .customEditingToolbar {
@@ -16,6 +17,46 @@
         </style>
     <![endif]-->   
     <style>
+    	input, select, textarea {
+            font: 0.9em Verdana, Arial, sans-serif;
+        }
+        #leftcol {
+            position: absolute;
+            top: 0;
+            left: 1em;
+            padding: 0;
+            width: 517px;
+        }
+        #map {
+            width: 512px;
+            height: 225px;
+            border: 1px solid #ccc;
+        }
+        #input {
+            width: 512px;
+        }
+        #text {
+            font-size: 0.85em;
+            margin: 1em 0 1em 0;
+            width: 100%;
+            height: 10em;
+        }
+        #info {
+            position: relative;
+            padding: 2em 0;
+            margin-left: 540px;
+        }
+        #output {
+            font-size: 0.8em;
+            width: 100%;
+            height: 512px;
+            border: 0;
+        }
+        p {
+            margin: 0;
+            padding: 0.75em 0 0.75em 0;
+        }
+
         .customEditingToolbar {
             float: right;
             right: 0px;
@@ -80,38 +121,26 @@
     <script type="text/javascript" charset="UTF-8" src="http://maps.gstatic.com/maps-api-v3/api/js/20/0/marker.js"></script>-->
 </head>
     <body onload="init()">
-        <h1 id="title">WFS Transaction Example</h1>
-        <div id="tags">
-            wfs, wfst, wfs-t, advanced
-        </div>
-        <p id="shortdesc">
-            Shows the use of the WFS Transactions (WFS-T).
-        </p>
-        <div id="map" class="smallmap olMap">
+     	<div id="leftcol">
+	        <h1 id="title">WFS Transaction Example</h1>
+	        <div id="tags">
+	            wfs, wfst, wfs-t, advanced
+	        </div>
+	        <p id="shortdesc">
+	            Shows the use of the WFS Transactions (WFS-T).
+	        </p>
+	        <div id="map" class="smallmap"></div>
 
-        </div>
+	        <button type="button" onclick="getFeatures()">Get Features</button>
 
-        <div id="docs">
-            <p>
-                The WFS protocol allows for creation of new features and
-                reading, updating, or deleting of existing features.
-            </p>
-            <p>
-                Use the tools to create, modify, and delete (in order from left
-                to right) features. Use the save tool (picture of a disk) to
-                save your changes.
-            </p>
-            <p>
-                To deactivate "drawing" or "modifying" depress the
-                corresponding button.
-            </p>
-            <p>
-                See the <a href="wfs-protocol-transactions.js" target="_blank">
-                wfs-protocol-transactions.js source</a> to see how this is done.
-            </p>        
-        </div>
+    	</div>
+
+	    <div id="info">
+	        <p>Use the tools to the left to draw new polygons, lines, and points.
+	        After drawing some new features, hover over a feature to see the
+	        serialized version below.</p>
+	        <textarea id="output"></textarea>
+	    </div>
     
-
-
-
-</body></html>
+	</body>
+</html>

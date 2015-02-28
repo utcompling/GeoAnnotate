@@ -1,5 +1,4 @@
-var map, wfs;
-//OpenLayers.ProxyHost = "proxy.cgi?url=";
+var map, annotation;
 
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     initialize: function(layer, options) {
@@ -28,6 +27,31 @@ var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     CLASS_NAME: "OpenLayers.Control.DeleteFeature"
 });
 
+function getFeatures() {
+    //var mLayers = map.layers;
+    var annotation_layer = map.getLayersByName("Annotations")
+
+    var geoJSON = new OpenLayers.Format.GeoJSON()
+
+    for(var a = 0; a < annotation_layer[0].features.length; a++ ){
+        var layer_geom = annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326")
+        var geoJSONText = geoJSON.write(annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326"));
+        testObject.save({"GEOJSON": layer_geom})
+        window.alert(geoJSONText)
+    };
+    //window.alert(annotation.features)
+}
+
+function saveFeatures() {
+    var annotation_layer = map.getLayersByName("Annotations")
+
+    for(var a = 0; a < annotation_layer[0].features.length; a++ ){
+        var feat = annotation_layer[0].features[a].geometry
+
+    };
+
+}
+
 
 function init() {
 
@@ -35,6 +59,10 @@ function init() {
         -11593508, 5009847, -11505759, 6057774
     );
 
+    Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx", "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
+
+    TestObject = Parse.Object.extend("GeoJson");
+    testObject = new TestObject();
 
     map = new OpenLayers.Map('map', {
         projection: new OpenLayers.Projection("EPSG:900913"),
@@ -53,21 +81,16 @@ function init() {
 
     var saveStrategy = new OpenLayers.Strategy.Save();
     
-    wfs = new OpenLayers.Layer.Vector("Editable Features", {
+    annotation = new OpenLayers.Layer.Vector("Annotations", {
         strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
         projection: new OpenLayers.Projection("EPSG:4326"),
-        protocol: new OpenLayers.Protocol.WFS({
-            version: "1.1.0",
-            srsName: "EPSG:4326",
-            url: "http://demo.opengeo.org/geoserver/wfs",
-            featureNS :  "http://opengeo.org",
-            featureType: "restricted",
-            geometryName: "the_geom",
-            schema: "http://demo.opengeo.org/geoserver/wfs/DescribeFeatureType?version=1.1.0&typename=og:restricted"
-        })
-    }); 
+        protocol : new OpenLayers.Protocol.HTTP({
+                url : 'polygons.geojson',
+                format : new OpenLayers.Format.GeoJSON()
+            })
+    })
    
-    map.addLayers([gphy ]);
+    map.addLayers([gphy, annotation]);
 
     var panel = new OpenLayers.Control.Panel({
         displayClass: 'customEditingToolbar',
@@ -75,7 +98,7 @@ function init() {
     });
     
     var draw = new OpenLayers.Control.DrawFeature(
-        wfs, OpenLayers.Handler.Polygon,
+        annotation, OpenLayers.Handler.Polygon,
         {
             title: "Draw Feature",
             displayClass: "olControlDrawFeaturePolygon",
@@ -83,12 +106,12 @@ function init() {
         }
     );
     
-    var edit = new OpenLayers.Control.ModifyFeature(wfs, {
+    var edit = new OpenLayers.Control.ModifyFeature(annotation, {
         title: "Modify Feature",
         displayClass: "olControlModifyFeature"
     });
 
-    var del = new DeleteFeature(wfs, {title: "Delete Feature"});
+    var del = new DeleteFeature(annotation, {title: "Delete Feature"});
    
     var save = new OpenLayers.Control.Button({
         title: "Save Changes",
@@ -97,14 +120,10 @@ function init() {
                 edit.selectControl.unselectAll();
             }
             saveStrategy.save();
+            window.alert("Done Saving")
         },
         displayClass: "olControlSaveFeatures"
     });
-
-    /*var click = new OpenLayers.Control.Click();
-    map.addControl(click);
-    click.activate();
-    map.addControl(new OpenLayers.Control.OverviewMap());*/
 
     panel.addControls([save, del, edit, draw]);
     map.addControl(panel);

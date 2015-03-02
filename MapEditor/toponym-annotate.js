@@ -93,7 +93,12 @@ function addPlace() {
 }
 
 function removePlace() {
-    window.alert("Remove Place Action Needed")
+    var textarea1 = document.getElementById("col2text")
+    var start = textarea1.selectionStart;
+    var finish = textarea1.selectionEnd;
+    var sel = textarea1.value.substring(start, finish);
+    var substr = sel.slice(7, -8)
+    document.getElementById("col2text").value = replaceRange(textarea1.value, start, finish, substr)
 }
 
 function saveFeatures() {

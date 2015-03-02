@@ -36,18 +36,31 @@ function getFeatures() {
     for(var a = 0; a < annotation_layer[0].features.length; a++ ){
         var layer_geom = annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326")
         var geoJSONText = geoJSON.write(annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326"));
-        testObject.save({"GEOJSON": layer_geom})
         window.alert(geoJSONText)
     };
     //window.alert(annotation.features)
+}
+
+function zoomFeatures() {
+    window.alert("Zoom Action Needed")
+}
+
+function addPlace() {
+    window.alert("Add Place Action Needed")
+}
+
+function removePlace() {
+    window.alert("Remove Place Action Needed")
 }
 
 function saveFeatures() {
     var annotation_layer = map.getLayersByName("Annotations")
 
     for(var a = 0; a < annotation_layer[0].features.length; a++ ){
-        var feat = annotation_layer[0].features[a].geometry
-
+        var layer_geom = annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326")
+        var geoJSONText = geoJSON.write(annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326"));
+        testObject.save({"GEOJSON": layer_geom})
+        window.alert(geoJSONText)
     };
 
 }

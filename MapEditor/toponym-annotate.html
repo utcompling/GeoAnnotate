@@ -16,6 +16,7 @@
             }
         </style>
     <![endif]-->
+    <!--This handles selection in dataTable -->
     <script type='text/javascript'>
     $(document).ready(function() {
         var table = $('#art_table').DataTable();
@@ -133,14 +134,20 @@
             background-position: 0px 1px;
         }
     </style>
-    <script src="wfs-protocol-transactions.js"></script>
+    <script src="toponym-annotate.js"></script>
 </head>
     <body onload="init()">
         <h1 id="title">GeoAnnotate Toponym Resolver</h1>
+        <form>
+            Annotator Name:
+            <input type="text" name="name">
+        </form>
         <div id="xouter3">
             <div id="xleftcol3">
                 <div id="map" class="smallmap"></div>
                 <button type="button" onclick="getFeatures()">Get Features</button>
+                <button type="button" onclick="zoomFeatures()">Zoom to Features</button>
+                <button type="button" onclick="saveFeatures()">Save</button>
             </div>
             <div id="xrightcol3">
                 <table id="art_table" style="width:100%">
@@ -177,8 +184,7 @@
             <div id="xmiddlecol3">
                 <div id="xinner3">
                     <textarea>
-Reports of Maj. Robert Anderson, U. S. Army, of the evacuation of Fort
-Moultrie, 5. 0.
+Reports of Maj. Robert Anderson, U. S. Army, of the evacuation of Fort Moultrie, 5. 0.
 
 No. 11.   FORT SUMTER, S. 0., December 26, 18608 p. m.
 (Received A. G. 0., December 29.)

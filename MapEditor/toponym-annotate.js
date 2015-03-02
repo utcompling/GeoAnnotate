@@ -1,5 +1,10 @@
 var map, annotation;
 
+var place_selection = [];
+
+var re = /<place>[^<]+<\/place>/g;
+
+
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     initialize: function(layer, options) {
         OpenLayers.Control.prototype.initialize.apply(this, [options]);
@@ -43,6 +48,34 @@ function getFeatures() {
 
 function zoomFeatures() {
     window.alert("Zoom Action Needed")
+}
+
+
+
+function match_ranges(sometext, re) {
+    var matches = [];
+    while ((m = re.exec(sometext)) !== null) {
+      matches.push([re.lastIndex - m[0].length, re.lastIndex - 1]);
+    }
+    return matches;
+};
+
+function placeClicked(textarea, place_range){
+    place_selection = place_range
+    textarea.selectionStart = place_range[0]
+    textarea.selectionEnd = place_range[1]+1
+}
+
+function checkRange(){
+    var textarea1 = document.getElementById("col2text")
+    var click_position = textarea1.selectionStart;
+    var place_ranges = match_ranges(textarea1.value, re)
+    for(var a = 0; a < place_ranges.length; a++ ){
+        if (click_position >= place_ranges[a][0] && click_position <= place_ranges[a][1]){
+            placeClicked(textarea1, place_ranges[a])
+            window.alert("Clicked inside place", place_ranges[a])
+        }
+    }
 }
 
 function replaceRange(s, start, end, substitute) {

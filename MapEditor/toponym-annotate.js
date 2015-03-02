@@ -45,8 +45,18 @@ function zoomFeatures() {
     window.alert("Zoom Action Needed")
 }
 
+function replaceRange(s, start, end, substitute) {
+    return s.substring(0, start) + substitute + s.substring(end);
+}
+
 function addPlace() {
-    window.alert("Add Place Action Needed")
+    var textarea1 = document.getElementById("col2text")
+    var start = textarea1.selectionStart;
+    // obtain the index of the last selected character
+    var finish = textarea1.selectionEnd;
+    // obtain the selected text
+    var sel = textarea1.value.substring(start, finish);
+    document.getElementById("col2text").value = replaceRange(textarea1.value, start, finish, "<place>"+sel+"</place>")
 }
 
 function removePlace() {

@@ -61,6 +61,8 @@ function init() {
 
     highlighter = rangy.createHighlighter();
 
+    applier = rangy.createClassApplier("highlight");
+
     highlighter.addClassApplier(rangy.createClassApplier("highlight", {
         ignoreWhiteSpace: true,
         tagNames: ["span", "a"]

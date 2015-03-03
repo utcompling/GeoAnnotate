@@ -111,7 +111,7 @@ function saveFeatures() {
     for(var a = 0; a < annotation_layer[0].features.length; a++ ){
         var layer_geom = annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326")
         var geoJSONText = geoJSON.write(annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326"));
-        testObject.save({"GEOJSON": layer_geom})
+        toponymObject.save({"GEOJSON": layer_geom})
         window.alert(geoJSONText)
     };
 
@@ -125,8 +125,19 @@ function init() {
 
     Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx", "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
-    TestObject = Parse.Object.extend("GeoJson");
-    testObject = new TestObject();
+    ToponymObject = Parse.Object.extend("Toponym");
+    toponymObject = new ToponymObject();
+
+    rangy.init();
+    applier = rangy.createClassApplier("toponym");
+    /*
+    highlighter = rangy.createHighlighter();
+
+    highlighter.addClassApplier(rangy.createClassApplier("highlight", {
+        ignoreWhiteSpace: true,
+        tagNames: ["span", "a"]
+    }));
+    */
 
     map = new OpenLayers.Map('map', {
         projection: new OpenLayers.Projection("EPSG:900913"),

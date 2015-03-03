@@ -69,7 +69,7 @@ function placeClicked(textarea, place_range){
 function checkRange(){
     var textarea1 = document.getElementById("col2text")
     var click_position = textarea1.selectionStart;
-    var place_ranges = match_ranges(textarea1.value, re)
+    var place_ranges = match_ranges(textarea1.innerHTML, re)
     for(var a = 0; a < place_ranges.length; a++ ){
         if (click_position >= place_ranges[a][0] && click_position <= place_ranges[a][1]){
             placeClicked(textarea1, place_ranges[a])
@@ -92,17 +92,17 @@ function addPlace() {
     // obtain the index of the last selected character
     var finish = textarea1.selectionEnd;
     // obtain the selected text
-    var sel = textarea1.value.substring(start, finish);
-    document.getElementById("col2text").value = replaceRange(textarea1.value, start, finish, "<place>"+sel+"</place>")
+    var sel = textarea1.innerHTML.substring(start, finish);
+    document.getElementById("col2text").innerHTML = replaceRange(textarea1.innerHTML, start, finish, "<place>"+sel+"</place>")
 }
 
 function removePlace() {
     var textarea1 = document.getElementById("col2text")
     var start = textarea1.selectionStart;
     var finish = textarea1.selectionEnd;
-    var sel = textarea1.value.substring(start, finish);
+    var sel = textarea1.innerHTML.substring(start, finish);
     var substr = sel.slice(7, -8)
-    document.getElementById("col2text").value = replaceRange(textarea1.value, start, finish, substr)
+    document.getElementById("col2text").innerHTML = replaceRange(textarea1.innerHTML, start, finish, substr)
 }
 
 function saveFeatures() {

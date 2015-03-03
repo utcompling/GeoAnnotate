@@ -21,16 +21,27 @@ function checkVol(){
     })
 }
 
+var highlighter;
+
+function highlightSelectedText() {
+    highlighter.highlightSelection("highlight");
+}
+
+function removeHighlightFromSelectedText() {
+    highlighter.unhighlightSelection();
+}
+
+function addArticle(){
+    highlightSelectedText();
+}
+
+function removeArticle(){
+
+}
+
 function checkRange(){
     var textarea1 = document.getElementById("col2text")
     var click_position = textarea1.selectionStart;
-    var place_ranges = match_ranges(textarea1.value, re)
-    for(var a = 0; a < place_ranges.length; a++ ){
-        if (click_position >= place_ranges[a][0] && click_position <= place_ranges[a][1]){
-            placeClicked(textarea1, place_ranges[a])
-            window.alert("Clicked inside place", place_ranges[a])
-        }
-    }
 }
 
 function replaceRange(s, start, end, substitute) {
@@ -42,6 +53,17 @@ function init() {
     Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx", "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
     VolObject = Parse.Object.extend("Text");
+    ArtObject = Parse.Object.extend("Article");
     volObject = new VolObject();
+    artObject = new ArtObject();
+
+    rangy.init();
+
+    highlighter = rangy.createHighlighter();
+
+    highlighter.addClassApplier(rangy.createClassApplier("highlight", {
+        ignoreWhiteSpace: true,
+        tagNames: ["span", "a"]
+    }));
 
 }

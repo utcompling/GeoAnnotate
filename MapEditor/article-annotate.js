@@ -1,3 +1,5 @@
+var highlighter;
+
 var article_ranges = [];
 
 
@@ -23,7 +25,16 @@ function checkVol(){
     })
 }
 
-var highlighter;
+function removeA(arr) {
+    var what, a = arguments, L = a.length, ax;
+    while (L > 1 && arr.length) {
+        what = a[--L];
+        while ((ax= arr.indexOf(what)) !== -1) {
+            arr.splice(ax, 1);
+        }
+    }
+    return arr;
+}
 
 function highlightSelectedText() {
     highlighter.highlightSelection("highlight");
@@ -39,17 +50,19 @@ function addArticle(){
     var highlight_range = rangy.getSelection().getRangeAt(0).toCharacterRange(document.getElementById('col2text'))
     var highlight_start = highlight_range.start;
     var highlight_end = highlight_range.end;
-    article_ranges.push(([highlight_start, highlight_end]));
     //var highlight_range = range.toCharacterRange("col2text")
-    window.alert(highlight_start + " " + highlight_end);
 }
 
 function removeArticle(){
-
+    var highlight_range = rangy.getSelection().getRangeAt(0).toCharacterRange(document.getElementById('col2text'))
+    var highlight_start = highlight_range.start;
+    var highlight_end = highlight_range.end;
+    removeHighlightFromSelectedText();
+    //window.alert("Removed Article Annotation")
 }
 
 function spanClick(element){
-    window.alert("Clicked inside article");
+    //window.alert("Clicked inside article");
     var range = rangy.createRange();
     range.selectNodeContents(element);
     var sel = rangy.getSelection();

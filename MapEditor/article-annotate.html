@@ -21,20 +21,26 @@
     <script type='text/javascript'>
     $(document).ready(function() {
         var table = $('#art_table').DataTable();
-     
+
         $('#art_table tbody').on( 'click', 'tr', function () {
-            if ( $(this).hasClass('selected') ) {
-                $(this).removeClass('selected');
-            }
-            else {
-                table.$('tr.selected').removeClass('selected');
-                $(this).addClass('selected');
-            }
+            var el = document.getElementById("selectUser");
+            var usr = el.options[el.selectedIndex].innerHTML;
+            if (usr != "Default"){
+                if ( $(this).hasClass('selected') ) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    table.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                }
+            };
         } );
+
      
         $('#button').click( function () {
             table.row('.selected').remove().draw( false );
         } );
+
     } );
     </script>
 
@@ -86,7 +92,7 @@
         .highlight {
             background-color: yellow;
         }
-        
+
         }
     </style>
     <script src="article-annotate.js"></script>
@@ -95,8 +101,9 @@
         <h1 id="title">Article Annotation</h1>
         <form>
             Annotator Name:
-            <select name="sometext">
+            <select id="selectUser" onchange="nameChange()">
               <option>Default</option>
+              <option>Master</option>
               <option>Grant DeLozier</option>
               <option>Ben Wing</option>
               <option>Jason Baldridge</option>
@@ -129,6 +136,7 @@
                      </div>
                      <button type="button" onclick="addArticle()">Add Article</button>
                      <button type="button" onclick="removeArticle()">Remove Article</button>
+                     <button type="button" onclick="saveAnnotations()">Save Annotations</button>
                 </div>
             </div>
         </div>

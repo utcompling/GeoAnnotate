@@ -1,61 +1,91 @@
-var highlighter;
+"use strict";
 
-//Will have schema vol-change_type-user-spanstart-spanend
-var article_changes = [];
+var applier;
+var unapplier;
+var VolObject, volObject;
+// var SerialArtObject, serialArtObject;
+var ArtObject, artObject;
+
 var selvol = "0";
 var user = "Default";
+var annotateClass = "geoarticle";
+var articleChanges = [];
 
+function getSelectionRange() {
+    return rangy.getSelection().getRangeAt(0)
+}
 
-function match_ranges(sometext, re) {
-    var matches = [];
-    while ((m = re.exec(sometext)) !== null) {
-      matches.push([re.lastIndex - m[0].length, re.lastIndex - 1]);
+// Return true if the range overlaps and annotation
+function overlapsAnnotation(range) {
+    function containerIsAnnotationChild(container) {
+        return container.nodeType === 3 &&
+            container.parentNode.className === annotateClass
     }
-    return matches;
-};
+    return (containerIsAnnotationChild(range.startContainer) ||
+        containerIsAnnotationChild(range.endContainer))
+}
 
-//fast method for loading annotations based on serialized string
-function load_serial_article_annotations(results){
-    var serialized_annot = results[0].get("serialized_annotations")
-    highlighter.deserialize(serialized_annot)
+// Return the nodes contained within the range.
+// NOTE: Always check overlapsAnnotation() first.
+// NOTE: Currently, this returns an empty array if we are
+// entirely within a single annotation but not exactly on it.
+function getRangeNodes(range) {
+    if (range.startContainer === range.endContainer &&
+        range.startContainer.className === annotateClass)
+        return [range.startContainer]
+    return range.getNodes(false, function(node) {
+      return node.className === annotateClass
+    })
+}
 
+function makeRange(node) {
+    var range = rangy.createRange()
+    range.selectNode(node)
+    return range
+}
+
+function getTextNode() {
+    return document.getElementById('col2text');
 }
 
 //slow method that iterates over article spans
-function load_article_annotations(results){
-    var selection = rangy.getSelection();
-    var selectionRanges = [];
-    for(var a = 0; a < results.length; a++ ){
+function loadArticleAnnotations(results){
+    var textNode = getTextNode().childNodes[0]
+    var spans = []
+    for(var a = 0; a < results.length; a++) {
         var span = results[a].get("span");
-        var start_span = span.split("-")[0];
-        selectionRanges.push({
-            "characterRange": {
-                "start": start_span,
-                "end": end
-            }
-        });
+        var split_span = span.split("-");
+        var start = split_span[0];
+        var end = split_span[1];
+        spans.push({start: start, end: end})
     }
-    selection.restoreCharacterRanges(document.getElementById('col2text'), selectionRanges);
-    highlighter.highlightSelection(highlightClass, selection);
+    spans.sort(function(a, b) { return b.start - a.start })
+    for (var a = 0; a < spans.length; a++) {
+        var span = spans[a]
+        var range = rangy.createRange()
+        range.setStartAndEnd(textNode, span.start, span.end)
+        applier.applyToRange(range)
+    }
 }
 
 function saveAnnotations(){
-    var serialized_annot = highlighter.serialize();
     if (user != "Default"){
-        serialArtObject.save({"user":user, "vol":selvol, "serialized_annotations":serialized_annot });
-        window.alert("Saving This Many Article Changes: " + article_changes.length);
-        for(var a = 0; a < article_changes.length; a++ ){
-            var change = article_changes[a];
+        var textNode = getTextNode();
+        // var nodes = getRangeNodes(makeRange(document.body))
+        window.alert("Saving This Many Article Changes: " + articleChanges.length);
+        for(var a = 0; a < articleChanges.length; a++ ){
+            var change = articleChanges[a]
             var change_row = change.split("-")
-            var change_user = change_row[0];
-            var change_vol = change_row[1];
-            var change_type = change_row[2];
-            var change_spanstart = change_row[3];
-            var change_spanend = change_row[4];
-            if (change_type == "add" ) {
+            var change_user = change_row[0]
+            var change_vol = change_row[1]
+            var change_type = change_row[2]
+            var change_spanstart = change_row[3]
+            var change_spanend = change_row[4]
+            var change_span = change_spanstart + "-" + change_spanend
+            if (change_type == "add") {
                 artObject = new ArtObject();
-                artObject.save({"user":change_user, "vol":change_vol, "span":(change_spanstart+"-"+change_spanend)});
-            } else if (change_type == "remove"){
+                artObject.save({"user":change_user, "vol":change_vol, "span":change_span});
+            } else if (change_type == "remove") {
                 var query = new Parse.Query("Article");
                 query.equalTo("user", change_user);
                 query.equalTo("vol", change_vol);
@@ -72,7 +102,7 @@ function saveAnnotations(){
             }
             
         }
-        article_changes = [];
+        articleChanges = [];
     } else{
         window.alert("Please select a non-default Annotator Name prior prior to saving")
     }
@@ -83,27 +113,28 @@ function checkVol(){
     if (user != "Default"){
         var table = $('#art_table').DataTable();
         var ret = table.$('tr.selected');
-        selvol = ret[0].cells[0].innerHTML;
-        var query = new Parse.Query(VolObject);
-        query.equalTo("vol", selvol);
-        query.find({
-            success: function(results) {
-                //alert("Successfully" + results[0].get("text"))
-                $("#col2text").html(results[0].get("text"));
-            }
-        })
-        var query = new Parse.Query(SerialArtObject);
-        query.equalTo("user", user);
-        query.equalTo("vol", selvol);
-        query.find({
-            success: function(results) {
-                //alert("Successfully" + results[0].get("text"))
-                if (results.length > 0) {
-                    load_serial_article_annotations(results);
+        if (ret.length > 0) {
+            selvol = ret[0].cells[0].innerHTML;
+            var query = new Parse.Query(VolObject);
+            query.equalTo("vol", selvol);
+            query.find({
+                success: function(results) {
+                    //alert("Successfully" + results[0].get("text"))
+                    $("#col2text").html(results[0].get("text"));
+                    var q2 = new Parse.Query(ArtObject);
+                    q2.equalTo("user", user);
+                    q2.equalTo("vol", selvol);
+                    q2.find({
+                        success: function(results) {
+                            //alert("Successfully" + results[0].get("text"))
+                            if (results.length > 0) {
+                                loadArticleAnnotations(results);
+                            }
+                        }
+                    })
                 }
-            }
-        })
-
+            })
+        }
     } else{
         window.alert("Please select a non-default Annotator Name prior to loading a volume")
     }
@@ -111,39 +142,50 @@ function checkVol(){
 
 function nameChange(){
     var el = document.getElementById("selectUser");
-    user = el.options[el.selectedIndex].innerHTML;;
+    user = el.options[el.selectedIndex].innerHTML;
 }
 
-function highlightSelectedText() {
-    highlighter.highlightSelection("highlight");
-}
-
-function removeHighlightFromSelectedText() {
-    highlighter.unhighlightSelection();
-}
-
-function addArticle(){
-    highlightSelectedText();
-    var range = rangy.createRange();
-    var highlight_range = rangy.getSelection().getRangeAt(0).toCharacterRange(document.getElementById('col2text'))
-    var highlight_start = highlight_range.start;
-    var highlight_end = highlight_range.end;
-    article_changes.push((user + "-"+ selvol + "-add" + "-" + highlight_start + "-" + highlight_end))
-    //var highlight_range = range.toCharacterRange("col2text")
-}
-
-function removeArticle(){
-    var highlight_range = rangy.getSelection().getRangeAt(0).toCharacterRange(document.getElementById('col2text'))
-    var highlight_start = highlight_range.start;
-    var highlight_end = highlight_range.end;
-    var index = article_changes.indexOf((user + "-"+ selvol + "-add" + "-" + highlight_start + "-" + highlight_end));
-    if (index != -1){
-        article_changes.splice(index, 1)
-    } else{
-        article_changes.push((user + "-"+ selvol + "-remove" + "-" + highlight_start + "-" + highlight_end))
+function addArticle() {
+    var selectionRange = getSelectionRange()
+    if (overlapsAnnotation(selectionRange))
+        alert("Selection already contains part of an annotation")
+    else {
+        var nodes = getRangeNodes(selectionRange)
+        if (nodes.length > 0)
+            alert("Selection already contains an annotation")
+        else {
+            applier.applyToSelection()
+            var artrange = getSelectionRange().toCharacterRange(getTextNode())
+            var change = user + "-"+ selvol + "-add" + "-" + artrange.start + "-" + artrange.end
+            articleChanges.push(change)
+            console.log("Added " + change + " to article changes")
+        }
     }
-    removeHighlightFromSelectedText();
-    //window.alert("Removed Article Annotation")
+}
+
+function removeArticle() {
+    var selectionRange = getSelectionRange()
+    if (overlapsAnnotation(selectionRange))
+        alert("Selection contains part of an annotation")
+    else {
+        var nodes = getRangeNodes(selectionRange)
+        var textNode = getTextNode()
+        for (var i = 0; i < nodes.length; i++) {
+            var artrange = makeRange(nodes[i]).toCharacterRange(textNode)
+            var change = user + "-"+ selvol + "-add" + "-" + artrange.start + "-" + artrange.end
+            var index = articleChanges.indexOf(change)
+            if (index != -1) {
+                articleChanges.splice(index, 1)
+                console.log("Removed " + change + " from article changes")
+            } else {
+                var change = user + "-"+ selvol + "-remove" + "-" + artrange.start + "-" + artrange.end
+                articleChanges.push(change)
+                console.log("Added " + change + " to article changes")
+            }
+        }
+        unapplier.undoToSelection();
+        //window.alert("Removed Article Annotation")
+    }
 }
 
 function spanClick(element){
@@ -154,31 +196,34 @@ function spanClick(element){
     sel.setSingleRange(range);
 }
 
-function replaceRange(s, start, end, substitute) {
-    return s.substring(0, start) + substitute + s.substring(end);
-}
-
 function init() {
 
-    Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx", "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
+    Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx",
+                     "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
     VolObject = Parse.Object.extend("Text");
-    SerialArtObject = Parse.Object.extend("Volume");
     volObject = new VolObject();
-    serialArtObject = new SerialArtObject();
+    // SerialArtObject = Parse.Object.extend("Volume");
+    // serialArtObject = new SerialArtObject();
     ArtObject = Parse.Object.extend("Article");
     artObject = new ArtObject();
 
     rangy.init();
 
-    highlighter = rangy.createHighlighter();
-
-    applier = rangy.createClassApplier("highlight");
-
-    highlighter.addClassApplier(rangy.createClassApplier("highlight", {
-        ignoreWhiteSpace: true,
+    // We have a separate applier and unapplier because the former needs to
+    // not normalize, which would merge two adjacent articles, but the
+    // latter does need to normalize, so that after removing the span, the
+    // text node left behind gets merged with adjacent nodes (otherwise,
+    // adding back an article would put a separate span around each text
+    // node).
+    applier = rangy.createClassApplier(annotateClass, {
         elementAttributes: {onclick:"spanClick(this)"},
-        tagNames: ["span", "a"]
-    }));
-
+        normalize: false
+    });
+    unapplier = rangy.createClassApplier(annotateClass, {
+        elementAttributes: {onclick:"spanClick(this)"},
+        normalize: true
+    });
 }
+
+// vi:sw=4

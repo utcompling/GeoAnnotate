@@ -2,9 +2,11 @@
 
 var applier;
 var unapplier;
-var VolObject, volObject;
-// var SerialArtObject, serialArtObject;
-var ArtObject, artObject;
+var VolObject;
+// var SerialArtObject;
+var ArtObject;
+var Art2Object;
+var Art3Object;
 
 var selvol = "0";
 var user = "Default";
@@ -48,8 +50,9 @@ function getTextNode() {
     return document.getElementById('col2text');
 }
 
-//slow method that iterates over article spans
 function loadArticleAnnotations(results){
+    applier.undoToRange(makeRange(document.body))
+    articleChanges = []
     var textNode = getTextNode().childNodes[0]
     var spans = []
     for(var a = 0; a < results.length; a++) {
@@ -68,75 +71,172 @@ function loadArticleAnnotations(results){
     }
 }
 
-function saveAnnotations(){
-    if (user != "Default"){
-        var textNode = getTextNode();
-        // var nodes = getRangeNodes(makeRange(document.body))
-        window.alert("Saving This Many Article Changes: " + articleChanges.length);
-        for(var a = 0; a < articleChanges.length; a++ ){
-            var change = articleChanges[a]
-            var change_row = change.split("-")
-            var change_user = change_row[0]
-            var change_vol = change_row[1]
-            var change_type = change_row[2]
-            var change_spanstart = change_row[3]
-            var change_spanend = change_row[4]
-            var change_span = change_spanstart + "-" + change_spanend
-            if (change_type == "add") {
-                artObject = new ArtObject();
-                artObject.save({"user":change_user, "vol":change_vol, "span":change_span});
-            } else if (change_type == "remove") {
-                var query = new Parse.Query("Article");
-                query.equalTo("user", change_user);
-                query.equalTo("vol", change_vol);
-                query.equalTo("span", change_span);
-                query.find({
-                    success: function(results) {
-                        Parse.Object.destroyAll(results).then(function(success) {
-                        // All the objects were deleted
-                        }, function(error) {
-                          console.error("Oops! Something went wrong in delete: " + error.message + " (" + error.code + ")");
-                        });
-                    }
-                });
-            }
-            
-        }
-        articleChanges = [];
-    } else{
-        window.alert("Please select a non-default Annotator Name prior prior to saving")
-    }
-
+function savesuccess(obj) {
+    console.log("Saved volume " + selvol + " for user " + user)
 }
 
-function checkVol(){
-    if (user != "Default"){
-        var table = $('#art_table').DataTable();
-        var ret = table.$('tr.selected');
-        if (ret.length > 0) {
-            selvol = ret[0].cells[0].innerHTML;
-            var query = new Parse.Query(VolObject);
-            query.equalTo("vol", selvol);
+function savefailure(error) {
+    window.alert("Failure saving volume " + selvol + " for user " + user +
+                 ": " + error.message + " (" + error.code + ")")
+}
+
+function saveAnnotationsXML() {
+    var textNode = getTextNode()
+    var clone = $(textNode).clone()
+    // Remove onclick handlers
+    clone.find('.' + annotateClass).removeAttr('onclick')
+    var html = clone.html()
+    var query = new Parse.Query(Art3Object)
+    query.equalTo("user", user)
+    query.equalTo("vol", selvol)
+    query.find().then(function(existing) {
+        if (existing.length > 0) {
+            existing[0].set("html", html)
+            return existing[0].save()
+        } else {
+            var artObject = new Art3Object()
+            return artObject.save({"user":user, "vol":selvol, "html":html})
+        }
+    }, savefailure).then(savesuccess, savefailure)
+}
+
+function saveAnnotationsDirectly() {
+    var nodes = getRangeNodes(makeRange(document.body))
+    var parseAnnotations = []
+    window.alert("Saving This Many Annotations: " + nodes.length)
+    var nodes = getRangeNodes(getSelectionRange())
+    var textNode = getTextNode()
+    for (var i = 0; i < nodes.length; i++) {
+        var artrange = makeRange(nodes[i]).toCharacterRange(textNode)
+        var artObject = new Art2Object()
+        artObject.set("user", user)
+        artObject.set("vol", selvol)
+        artObject.set("span", artrange.start + "-" + artrange.end)
+        parseAnnotations.push(artObject)
+    }
+    var query = new Parse.Query(Art2Object)
+    query.find().then(function(existingobjs) {
+        Parse.Object.saveAll(parseAnnotations, {
+            success: function(newobjs) {
+                console.log("Saved " + newobjs.length + " new objects")
+                Parse.Object.destroyAll(existingobjs).then(function(success) {
+                    console.log("Destroyed " + existingobjs.length + " old objects")
+                }, function(error) {
+                    console.error("Oops! Something went wrong in delete old objects: " +
+                                  error.message + " (" + error.code + ")")
+                })
+            },
+            error: function(error) {
+                console.error("Oops! Something went wrong in save new objects: " +
+                              error.message + " (" + error.code + ")")
+            }
+        })
+    }, function(error) {
+        console.error("Oops! Something went wrong in querying existing objects: " +
+                      error.message + " (" + error.code + ")")
+    })
+}
+
+function saveAnnotationsByChangeSet() {
+    var textNode = getTextNode();
+    window.alert("Saving This Many Article Changes: " + articleChanges.length);
+    for(var a = 0; a < articleChanges.length; a++ ){
+        var change = articleChanges[a]
+        var change_row = change.split("-")
+        var change_user = change_row[0]
+        var change_vol = change_row[1]
+        var change_type = change_row[2]
+        var change_spanstart = change_row[3]
+        var change_spanend = change_row[4]
+        var change_span = change_spanstart + "-" + change_spanend
+        if (change_type == "add") {
+            var artObject = new ArtObject();
+            artObject.save({"user":change_user, "vol":change_vol, "span":change_span});
+        } else if (change_type == "remove") {
+            var query = new Parse.Query(ArtObject);
+            query.equalTo("user", change_user);
+            query.equalTo("vol", change_vol);
+            query.equalTo("span", change_span);
             query.find({
                 success: function(results) {
-                    //alert("Successfully" + results[0].get("text"))
-                    $("#col2text").html(results[0].get("text"));
-                    var q2 = new Parse.Query(ArtObject);
-                    q2.equalTo("user", user);
-                    q2.equalTo("vol", selvol);
-                    q2.find({
-                        success: function(results) {
-                            //alert("Successfully" + results[0].get("text"))
-                            if (results.length > 0) {
-                                loadArticleAnnotations(results);
-                            }
-                        }
-                    })
+                    Parse.Object.destroyAll(results).then(function(success) {
+                    // All the objects were deleted
+                    }, function(error) {
+                      console.error("Oops! Something went wrong in delete: " + error.message + " (" + error.code + ")");
+                    });
                 }
-            })
+            });
         }
-    } else{
-        window.alert("Please select a non-default Annotator Name prior to loading a volume")
+    }
+}
+
+function saveAnnotations() {
+    if (user != "Default") {
+        saveAnnotationsByChangeSet()
+        // saveAnnotationsDirectly()
+        saveAnnotationsXML()
+    } else {
+        window.alert("Please select a non-default Annotator Name prior prior to saving")
+    }
+    articleChanges = [];
+}
+
+function loadVolume(vol) {
+    selvol = vol
+    var query = new Parse.Query(VolObject)
+    query.equalTo("vol", vol)
+    query.find().then(function(results) {
+        //console.log("Successfully " + results[0].get["text"))
+        $("#col2text").html(results[0].get("text"))
+        var q2 = new Parse.Query(ArtObject)
+        q2.equalTo("user", user)
+        q2.equalTo("vol", vol)
+        return q2.find()
+    }).then(function(results) {
+        //console.log("Successfully " + results[0])
+        if (results.length > 0) {
+            loadArticleAnnotations(results)
+        }
+    })
+}
+
+function closeDialog(this) {
+    $(this).dialog("close")
+}
+
+function checkVol() {
+    if (user != "Default") {
+        var table = $('#art_table').DataTable()
+        var ret = table.$('tr.selected')
+        if (ret.length > 0) {
+            var newvol = ret[0].cells[0].innerHTML
+            if (articleChanges.length > 0) {
+                $("<div>Do you want to save the existing annotations?</div>").dialog({
+                    resizable: false,
+                    modal: true,
+                    buttons: {
+                        "Yes": function() {
+                            saveAnnotations()
+                            loadVolume(newvol)
+                            closeDialog(this)
+                        },
+                        "No": function() {
+                            loadVolume(newvol)
+                            closeDialog(this)
+                        },
+                        "Cancel": function() {
+                            console.log("Canceled")
+                            window.alert("FIXME: We should set the visibly selected volume to the old one")
+                            closeDialog(this)
+                        }
+                    }
+                })
+            } else {
+                loadVolume(newvol)
+            }
+        }
+    } else {
+        window.alert("Please select a non-default Annotator name prior to loading a volume")
     }
 }
 
@@ -202,11 +302,10 @@ function init() {
                      "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
     VolObject = Parse.Object.extend("Text");
-    volObject = new VolObject();
     // SerialArtObject = Parse.Object.extend("Volume");
-    // serialArtObject = new SerialArtObject();
     ArtObject = Parse.Object.extend("Article");
-    artObject = new ArtObject();
+    Art2Object = Parse.Object.extend("Article2");
+    Art3Object = Parse.Object.extend("Article3");
 
     rangy.init();
 

@@ -123,13 +123,19 @@ function removeHighlightFromSelectedText() {
 }
 
 function addArticle(){
+    var numbarts1 = highlighter.serialize().split("|").length;
     highlightSelectedText();
-    var range = rangy.createRange();
-    var highlight_range = rangy.getSelection().getRangeAt(0).toCharacterRange(document.getElementById('col2text'))
-    var highlight_start = highlight_range.start;
-    var highlight_end = highlight_range.end;
-    article_changes.push((user + "-"+ selvol + "-add" + "-" + highlight_start + "-" + highlight_end))
-    //var highlight_range = range.toCharacterRange("col2text")
+    var numbarts2 = highlighter.serialize().split("|").length;
+    if (numbarts1 != numbarts2){
+        var range = rangy.createRange();
+        var highlight_range = rangy.getSelection().getRangeAt(0).toCharacterRange(document.getElementById('col2text'))
+        var highlight_start = highlight_range.start;
+        var highlight_end = highlight_range.end;
+        article_changes.push((user + "-"+ selvol + "-add" + "-" + highlight_start + "-" + highlight_end))
+        //var highlight_range = range.toCharacterRange("col2text")
+    } else{
+        window.alert("Partial Selection was blocked from adding");
+    }
 }
 
 function removeArticle(){

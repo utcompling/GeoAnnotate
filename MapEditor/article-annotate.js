@@ -1,18 +1,9 @@
 var highlighter;
 
-//Will have schema vol-change_type-user-spanstart-spanend
+//Will have schema user-vol-change_type-spanstart-spanend
 var article_changes = [];
 var selvol = "0";
 var user = "Default";
-
-
-function match_ranges(sometext, re) {
-    var matches = [];
-    while ((m = re.exec(sometext)) !== null) {
-      matches.push([re.lastIndex - m[0].length, re.lastIndex - 1]);
-    }
-    return matches;
-};
 
 //fast method for loading annotations based on serialized string
 function load_serial_article_annotations(results){
@@ -42,7 +33,31 @@ function load_article_annotations(results){
 function saveAnnotations(){
     var serialized_annot = highlighter.serialize();
     if (user != "Default"){
-        serialArtObject.save({"user":user, "vol":selvol, "serialized_annotations":serialized_annot });
+        if (article_changes.length > 0) {
+            //first save the serialized string in the volume collection
+            //current assuming that everything in article_changes will be in same volume
+            var change_row = article_changes[0].split("-");
+            var change_user = change_row[0];
+            var change_vol = change_row[1];
+            var query = new Parse.Query("Volume");
+            query.equalTo("vol", change_vol);
+            query.equalTo("user", change_user);
+            query.first({
+              success: function(object) {
+
+                    alert("Found already saved vol for user, updating");
+
+                    object.set("serialized_annotations", serialized_annot);
+
+                    object.save();
+                
+              },
+              error: function(error) {
+                alert("Error: " + error.code + " " + error.message);
+              }
+            });
+            
+        }
         window.alert("Saving This Many Article Changes: " + article_changes.length);
         for(var a = 0; a < article_changes.length; a++ ){
             var change = article_changes[a];
@@ -81,9 +96,8 @@ function saveAnnotations(){
 
 function checkVol(){
     if (user != "Default"){
-        var table = $('#art_table').DataTable();
-        var ret = table.$('tr.selected');
-        selvol = ret[0].cells[0].innerHTML;
+        var table = $('#art_table').dataTable();
+        selvol = table.$('tr.selected').find('td:first').text();
         var query = new Parse.Query(VolObject);
         query.equalTo("vol", selvol);
         query.find({
@@ -169,8 +183,8 @@ function init() {
     Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx", "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
     VolObject = Parse.Object.extend("Text");
-    SerialArtObject = Parse.Object.extend("Volume");
     volObject = new VolObject();
+    SerialArtObject = Parse.Object.extend("Volume");
     serialArtObject = new SerialArtObject();
     ArtObject = Parse.Object.extend("Article");
     artObject = new ArtObject();

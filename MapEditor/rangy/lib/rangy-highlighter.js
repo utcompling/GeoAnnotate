@@ -373,7 +373,7 @@
                             //  1. merged (isSameClassApplier)
                             //  2. partially or entirely erased (className === null)
                             //  3. partially or entirely replaced (isSameClassApplier == false && exclusive == true)
-                            if (    (highlightCharRange.intersects(charRange) || highlightCharRange.isContiguousWith(charRange)) &&
+                            if (    (highlightCharRange.intersects(charRange) ) &&
                                     (isSameClassApplier || splitHighlight) ) {
 
                                 // Remove existing highlights, keeping the unselected parts

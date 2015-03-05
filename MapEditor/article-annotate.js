@@ -12,6 +12,14 @@ function load_serial_article_annotations(results){
 
 }
 
+function fixAnnotations(){
+    //applier.undoToSelection(document.getElementById('col2text'));
+    var range = rangy.createRange();
+    range.selectNodeContents(document.getElementById('col2text'));
+    applier.undoToRange(range);
+    highlighter.deserialize(highlighter.serialize());
+}
+
 //slow method that iterates over article spans
 function load_article_annotations(results){
     var selection = rangy.getSelection();
@@ -45,11 +53,19 @@ function saveAnnotations(){
             query.first({
               success: function(object) {
 
-                    alert("Found already saved vol for user, updating");
+                    if (typeof object !== 'undefined'){
 
-                    object.set("serialized_annotations", serialized_annot);
+                        alert("Found already saved vol for user, updating");
 
-                    object.save();
+                        object.set("serialized_annotations", serialized_annot);
+
+                        object.save();
+                    } else{
+                        alert("Did not find existing annotation for vol, creating new");
+                        serialArtObject = new SerialArtObject();
+                        serialArtObject.save({"user":change_user, "vol":change_vol, "serialized_annotations":serialized_annot});
+
+                    };
                 
               },
               error: function(error) {
@@ -58,6 +74,8 @@ function saveAnnotations(){
             });
             
         }
+        //removing individual article saver until logic is improved
+        /*
         window.alert("Saving This Many Article Changes: " + article_changes.length);
         for(var a = 0; a < article_changes.length; a++ ){
             var change = article_changes[a];
@@ -86,7 +104,7 @@ function saveAnnotations(){
                 });
             }
             
-        }
+        }*/
         article_changes = [];
     } else{
         window.alert("Please select a non-default Annotator Name prior prior to saving")

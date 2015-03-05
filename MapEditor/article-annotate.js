@@ -50,7 +50,7 @@ function getTextNode() {
     return document.getElementById('col2text');
 }
 
-function loadArticleAnnotations(results){
+function loadAnnotations(results){
     applier.undoToRange(makeRange(document.body))
     articleChanges = []
     var textNode = getTextNode().childNodes[0]
@@ -69,6 +69,13 @@ function loadArticleAnnotations(results){
         range.setStartAndEnd(textNode, span.start, span.end)
         applier.applyToRange(range)
     }
+}
+
+function loadAnnotationsXML(results) {
+    applier.undoToRange(makeRange(document.body))
+    articleChanges = []
+    $(getTextNode()).html(results[0].get("html"))
+    $(getTextNode()).find('.' + annotateClass).attr("onclick", "spanClick(this)")
 }
 
 function savesuccess(obj) {
@@ -188,20 +195,22 @@ function loadVolume(vol) {
     query.find().then(function(results) {
         //console.log("Successfully " + results[0].get["text"))
         $("#col2text").html(results[0].get("text"))
-        var q2 = new Parse.Query(ArtObject)
+        // var q2 = new Parse.Query(ArtObject)
+        var q2 = new Parse.Query(Art3Object)
         q2.equalTo("user", user)
         q2.equalTo("vol", vol)
         return q2.find()
     }).then(function(results) {
         //console.log("Successfully " + results[0])
         if (results.length > 0) {
-            loadArticleAnnotations(results)
+            // loadAnnotations(results)
+            loadAnnotationsXML(results)
         }
     })
 }
 
-function closeDialog(this) {
-    $(this).dialog("close")
+function closeDialog(node) {
+    $(node).dialog("close")
 }
 
 function checkVol() {

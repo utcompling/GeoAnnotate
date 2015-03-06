@@ -83,6 +83,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         return function(el, className) {
             if (typeof el.classList == "object") {
                 el.classList.remove(className);
+                el.removeAttribute("spanClick(this)");
+                window.alert("removing Attribute");
             } else {
                 var classNameSupported = (typeof el.className == "string");
                 var elClass = classNameSupported ? el.className : el.getAttribute("class");
@@ -91,6 +93,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     el.className = elClass;
                 } else {
                     el.setAttribute("class", elClass);
+                    el.removeAttribute("spanClick(this)");
+                    window.alert("removing Attribute");
                 }
             }
         };

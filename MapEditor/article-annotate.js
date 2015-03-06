@@ -4,6 +4,7 @@ var highlighter;
 var article_changes = [];
 var selvol = "0";
 var user = "Default";
+var annotateClass = "highlighter";
 
 //fast method for loading annotations based on serialized string
 function load_serial_article_annotations(results){
@@ -14,10 +15,28 @@ function load_serial_article_annotations(results){
 
 function fixAnnotations(){
     //applier.undoToSelection(document.getElementById('col2text'));
+    var serial_hi = highlighter.serialize();
     var range = rangy.createRange();
     range.selectNodeContents(document.getElementById('col2text'));
-    applier.undoToRange(range);
+    unapplier.undoToRange(range);
+
+    //Create new highlighter to avoid overlapping arrows
+    /*highlighter = new rangy.createHighlighter();
+    highlighter.addClassApplier(rangy.createClassApplier("highlight", {
+        normalize:false,
+        elementAttributes: {onclick:"spanClick(this)"},
+        tagNames: ["span", "a"]
+    }));
+
     highlighter.deserialize(highlighter.serialize());
+
+    debugger;
+
+    highlighter.deserialize(serial_hi);*/ 
+    //var range = rangy.createRange();
+    //range.selectNodeContents(document.getElementById('col2text'));
+    //applier.undoToRange(range);
+    
 }
 
 //slow method that iterates over article spans
@@ -183,7 +202,9 @@ function removeArticle(){
     } else{
         article_changes.push((user + "-"+ selvol + "-remove" + "-" + highlight_start + "-" + highlight_end))
     }
+    unapplier.undoToSelection();
     removeHighlightFromSelectedText();
+
     //window.alert("Removed Article Annotation")
 }
 
@@ -216,11 +237,14 @@ function init() {
 
     applier = rangy.createClassApplier("highlight");
 
-    highlighter.addClassApplier(rangy.createClassApplier("highlight", {
-        ignoreWhiteSpace: true,
-        normalize:false,
+    unapplier = rangy.createClassApplier(annotateClass, {
         elementAttributes: {onclick:"spanClick(this)"},
-        tagNames: ["span", "a"]
+        normalize: true
+    });
+
+    highlighter.addClassApplier(rangy.createClassApplier("highlight", {
+        normalize:true,
+        elementAttributes: {onclick:"spanClick(this)"}
     }));
 
 }

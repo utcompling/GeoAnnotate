@@ -3,7 +3,7 @@
 var applier;
 var unapplier;
 var VolObject;
-// var SerialArtObject;
+var SerialArtObject;
 var ArtObject;
 var Art2Object;
 var Art3Object;
@@ -70,7 +70,7 @@ function loadAnnotations(results){
         applier.applyToRange(range)
     }
 }
-
+//I really don't get the point of this function
 function loadAnnotationsXML(results) {
     applier.undoToRange(makeRange(document.body))
     articleChanges = []
@@ -87,6 +87,7 @@ function savefailure(error) {
                  ": " + error.message + " (" + error.code + ")")
 }
 
+//Why are we saving the entire XML? We should only be saving spans
 function saveAnnotationsXML() {
     var textNode = getTextNode()
     var clone = $(textNode).clone()
@@ -107,7 +108,67 @@ function saveAnnotationsXML() {
     }, savefailure).then(savesuccess, savefailure)
 }
 
+function serialize() {
+
+    var serial_spans = [];
+    var nodes = getRangeNodes(makeRange(document.getElementById("col2text")))
+    var textNode = getTextNode()
+    for (var i = 0; i < nodes.length; i++) {
+        var spanRange = makeRange(nodes[i]).toCharacterRange(textNode);
+        var applier_class = nodes[i].getAttribute('class')
+        serial_spans.push(applier_class+"$"+spanRange.start+"$"+spanRange.end);
+    };
+
+    console.log(serial_spans.join('|'))
+
+    return serial_spans.join('|')
+
+}
+
+function saveSerializedSpans() {
+    var serial_span = serialize()
+    //need to implement this
+    if (user != "Default"){
+        if (articleChanges.length > 0) {
+            //first save the serialized string in the volume collection
+            //current assuming that everything in article_changes will be in same volume
+            //if strategy is kept, article_changes should be wiped when vol changes
+            var change_row = articleChanges[0].split("-");
+            var change_user = change_row[0];
+            var change_vol = change_row[1];
+            var query = new Parse.Query("Volume");
+            query.equalTo("vol", change_vol);
+            query.equalTo("user", change_user);
+            query.first({
+              success: function(object) {
+
+                    if (typeof object !== 'undefined'){
+
+                        alert("Found already saved vol for user, updating");
+
+                        object.set("serialized_annotations", serial_span);
+
+                        object.save();
+                    } else{
+                        alert("Did not find existing annotation for vol, creating new");
+                        serialArtObject = new SerialArtObject();
+                        serialArtObject.save({"user":change_user, "vol":change_vol, "serialized_annotations":serialized_annot});
+
+                    };
+                
+              },
+              error: function(error) {
+                alert("Error: " + error.code + " " + error.message);
+              }
+            });
+        }
+    }
+}
+
+
 function saveAnnotationsDirectly() {
+    //Do we really want the nodes to include everything in the body?
+    //Why not just the col containing the text?
     var nodes = getRangeNodes(makeRange(document.body))
     var parseAnnotations = []
     window.alert("Saving This Many Annotations: " + nodes.length)
@@ -179,9 +240,10 @@ function saveAnnotationsByChangeSet() {
 
 function saveAnnotations() {
     if (user != "Default") {
-        saveAnnotationsByChangeSet()
+        // saveAnnotationsByChangeSet()
         // saveAnnotationsDirectly()
-        saveAnnotationsXML()
+        // saveAnnotationsXML()
+        saveSerializedSpans()
     } else {
         window.alert("Please select a non-default Annotator Name prior prior to saving")
     }
@@ -218,7 +280,7 @@ function checkVol() {
         var table = $('#art_table').DataTable()
         var ret = table.$('tr.selected')
         if (ret.length > 0) {
-            var newvol = ret[0].cells[0].innerHTML
+            var newvol = table.$('tr.selected').find('td:first').text();
             if (articleChanges.length > 0) {
                 $("<div>Do you want to save the existing annotations?</div>").dialog({
                     resizable: false,
@@ -311,7 +373,8 @@ function init() {
                      "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
     VolObject = Parse.Object.extend("Text");
-    // SerialArtObject = Parse.Object.extend("Volume");
+    SerialArtObject = Parse.Object.extend("Volume");
+    //Why do we need three separate articles here?
     ArtObject = Parse.Object.extend("Article");
     Art2Object = Parse.Object.extend("Article2");
     Art3Object = Parse.Object.extend("Article3");

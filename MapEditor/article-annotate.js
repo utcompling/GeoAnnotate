@@ -47,48 +47,63 @@ function makeRange(node) {
 }
 
 function getTextNode() {
-    return document.getElementById('col2text');
+    return document.getElementById('col2text')
 }
 
-function loadAnnotations(results){
-    applier.undoToRange(makeRange(document.body))
-    articleChanges = []
-    var textNode = getTextNode().childNodes[0]
-    var spans = []
-    for(var a = 0; a < results.length; a++) {
-        var span = results[a].get("span");
-        var split_span = span.split("-");
-        var start = split_span[0];
-        var end = split_span[1];
-        spans.push({start: start, end: end})
+// Return an array of annotations as character offsets, where each annotation
+// is an object containing 'start', 'end' and 'node' properties
+function getAnnotations() {
+    var annotations = []
+    var nodes = getRangeNodes(makeRange(document.body))
+    var textNode = getTextNode()
+    for (var i = 0; i < nodes.length; i++) {
+        var range = makeRange(nodes[i]).toCharacterRange(textNode)
+        annotations.push({start:range.start, end:range.end, node:nodes[i]})
     }
-    spans.sort(function(a, b) { return b.start - a.start })
-    for (var a = 0; a < spans.length; a++) {
-        var span = spans[a]
-        var range = rangy.createRange()
-        range.setStartAndEnd(textNode, span.start, span.end)
-        applier.applyToRange(range)
-    }
+    return annotations
 }
-//I really don't get the point of this function
-function loadAnnotationsXML(results) {
-    applier.undoToRange(makeRange(document.body))
+//
+// Remove any existing annotations and clear the article-changes list
+function removeAnnotations() {
+    unapplier.undoToRange(makeRange(document.body))
     articleChanges = []
+}
+
+//I really don't get the point of this function
+/*
+function loadAnnotationsXML(results) {
+    removeAnnotations()
     $(getTextNode()).html(results[0].get("html"))
     $(getTextNode()).find('.' + annotateClass).attr("onclick", "spanClick(this)")
 }
+*/
 
-function savesuccess(obj) {
-    console.log("Saved volume " + selvol + " for user " + user)
+// Function that returns a callback function meant to be called upon successful save in
+// a Parse operation. SUCCESSCB is a callback passed in by the user to be executed
+// by the returned callback, which also logs a save message.
+function savesuccess(successcb) {
+    return function(obj) {
+        console.log("Saved volume " + selvol + " for user " + user)
+        successcb()
+    }
 }
 
-function savefailure(error) {
-    window.alert("Failure saving volume " + selvol + " for user " + user +
-                 ": " + error.message + " (" + error.code + ")")
+// Function that returns a callback function meant to be called as a failure callback
+// from a Parse operation. The OPERATION argument, if given, specifies the operation
+// during which the failure occurred and will appear in the message.
+function savefailure(operation) {
+    return function(error) {
+        window.alert("Failure saving volume " + selvol + " for user " + user +
+                     (operation ? " during " + operation : "") + ": " + error.message +
+                     " (" + error.code + ")")
+    }
 }
 
-//Why are we saving the entire XML? We should only be saving spans
-function saveAnnotationsXML() {
+/*
+
+// Save annotations as a big HTML string. SUCCESSCB is a callback to execute upon
+// successful saving.
+function saveAnnotationsXML(successcb) {
     var textNode = getTextNode()
     var clone = $(textNode).clone()
     // Remove onclick handlers
@@ -105,8 +120,11 @@ function saveAnnotationsXML() {
             var artObject = new Art3Object()
             return artObject.save({"user":user, "vol":selvol, "html":html})
         }
-    }, savefailure).then(savesuccess, savefailure)
+    }, savefailure("finding existing entry")
+    ).then(savesuccess(successcb),
+        savefailure("saving new or updating existing entry"))
 }
+*/
 
 function serialize() {
 
@@ -166,20 +184,39 @@ function saveSerializedSpans() {
 }
 
 
-function saveAnnotationsDirectly() {
-    //Do we really want the nodes to include everything in the body?
-    //Why not just the col containing the text?
-    var nodes = getRangeNodes(makeRange(document.body))
+function loadAnnotations(results) {
+    removeAnnotations()
+    var textNode = getTextNode().childNodes[0]
+    var spans = []
+    for(var a = 0; a < results.length; a++) {
+        var span = results[a].get("span")
+        var split_span = span.split("-")
+        var start = split_span[0]
+        var end = split_span[1]
+        spans.push({start: start, end: end})
+    }
+    spans.sort(function(a, b) { return b.start - a.start })
+    for (var a = 0; a < spans.length; a++) {
+        var span = spans[a]
+        var range = rangy.createRange()
+        range.setStartAndEnd(textNode, span.start, span.end)
+        applier.applyToRange(range)
+    }
+}
+
+// Save annotations "directly" as a set of separate entries, one per span.
+// This saves all spans each time. SUCCESSCB is a callback to execute upon successful
+// saving.
+function saveAnnotationsDirectly(successcb) {
+    var annotations = getAnnotations()
     var parseAnnotations = []
-    window.alert("Saving This Many Annotations: " + nodes.length)
-    var nodes = getRangeNodes(getSelectionRange())
-    var textNode = getTextNode()
-    for (var i = 0; i < nodes.length; i++) {
-        var artrange = makeRange(nodes[i]).toCharacterRange(textNode)
+    window.alert("Saving This Many Annotations: " + annotations.length)
+    for (var i = 0; i < annotations.length; i++) {
+        var annotation = annotations[i]
         var artObject = new Art2Object()
         artObject.set("user", user)
         artObject.set("vol", selvol)
-        artObject.set("span", artrange.start + "-" + artrange.end)
+        artObject.set("span", annotation.start + "-" + annotation.end)
         parseAnnotations.push(artObject)
     }
     var query = new Parse.Query(Art2Object)
@@ -187,28 +224,36 @@ function saveAnnotationsDirectly() {
         Parse.Object.saveAll(parseAnnotations, {
             success: function(newobjs) {
                 console.log("Saved " + newobjs.length + " new objects")
-                Parse.Object.destroyAll(existingobjs).then(function(success) {
+                Parse.Object.destroyAll(existingobjs).then(function(results) {
                     console.log("Destroyed " + existingobjs.length + " old objects")
-                }, function(error) {
-                    console.error("Oops! Something went wrong in delete old objects: " +
-                                  error.message + " (" + error.code + ")")
-                })
+                    savesuccess(successcb)(newobjs)
+                }, savefailure("delete old objects"))
             },
-            error: function(error) {
-                console.error("Oops! Something went wrong in save new objects: " +
-                              error.message + " (" + error.code + ")")
-            }
+            error: savefailure("save new objects")
         })
-    }, function(error) {
-        console.error("Oops! Something went wrong in querying existing objects: " +
-                      error.message + " (" + error.code + ")")
-    })
+    }, savefailure("querying existing objects"))
 }
 
-function saveAnnotationsByChangeSet() {
-    var textNode = getTextNode();
-    window.alert("Saving This Many Article Changes: " + articleChanges.length);
-    for(var a = 0; a < articleChanges.length; a++ ){
+// Save annotations according to the article changes, in a non-serialized format by
+// updating the spans that were changed. SUCCESSCB is a callback to execute
+// upon successful saving.
+function saveAnnotationsByChangeSet(successcb) {
+    var textNode = getTextNode()
+    window.alert("Saving This Many Article Changes: " + articleChanges.length)
+    // We have a whole series of changes to save and we save them one at a time.
+    // When each one finishes, a callback triggers. We keep track of how many
+    // successful saves we've had, and when it equals the total number of changes to
+    // be saved, we've successfully saved everything, and we trigger the success
+    // callback.
+    var savedChanges = 0
+    // FIXME! If an error occurs it should immediately abort further processing,
+    // rather than continuing with trying to save further spans.
+    // FIXME double! If an error occurs our saved database will be in an inconsistent
+    // state, with some annotations saved and some not. This may lead to errors at
+    // load time.
+    // These FIXME's may not be so important because we don't use this, prefering
+    // to serialize all spans in a single item.
+    for(var a = 0; a < articleChanges.length; a++) {
         var change = articleChanges[a]
         var change_row = change.split("-")
         var change_user = change_row[0]
@@ -218,36 +263,104 @@ function saveAnnotationsByChangeSet() {
         var change_spanend = change_row[4]
         var change_span = change_spanstart + "-" + change_spanend
         if (change_type == "add") {
-            var artObject = new ArtObject();
-            artObject.save({"user":change_user, "vol":change_vol, "span":change_span});
-        } else if (change_type == "remove") {
-            var query = new Parse.Query(ArtObject);
-            query.equalTo("user", change_user);
-            query.equalTo("vol", change_vol);
-            query.equalTo("span", change_span);
-            query.find({
-                success: function(results) {
-                    Parse.Object.destroyAll(results).then(function(success) {
-                    // All the objects were deleted
-                    }, function(error) {
-                      console.error("Oops! Something went wrong in delete: " + error.message + " (" + error.code + ")");
-                    });
+            var artObject = new ArtObject()
+            artObject.save({"user":change_user, "vol":change_vol,
+                           "span":change_span}).then(function(results) {
+                savedChanges++
+                if (savedChanges == articleChanges.length) {
+                    savesuccess(successcb)(results)
                 }
-            });
+            }, savefailure("add"))
+        } else if (change_type == "remove") {
+            var query = new Parse.Query(ArtObject)
+            query.equalTo("user", change_user)
+            query.equalTo("vol", change_vol)
+            query.equalTo("span", change_span)
+            query.find().then(function(results) {
+                return Parse.Object.destroyAll(results)
+            }, savefailure("delete")).then(function(results) {
+                savedChanges++
+                if (savedChanges == articleChanges.length) {
+                    savesuccess(successcb)(results)
+                }
+            }, savefailure("delete"))
         }
     }
 }
 
+// Load annotations in a serialized format. RESULTS is the query results from
+// Parse, queried on the user and volume. There should be only one entry for a given
+// user and volume.
+function loadAnnotationsSerialized(results) {
+    removeAnnotations()
+    debugger;
+    var textNode = getTextNode().childNodes[0]
+    var spansSerialized = results[0].get("spans").split(":")
+    var spans = []
+    for (var i = 0; i < spansSerialized.length; i++) {
+        var span = spansSerialized[i]
+        var split_span = span.split("$")
+        var start = split_span[1]
+        var end = split_span[2]
+        spans.push({start: start, end: end})
+    }
+    spans.sort(function(a, b) { return b.start - a.start })
+    for (var i = 0; i < spans.length; i++) {
+        var span = spans[i]
+        var range = rangy.createRange()
+        range.setStartAndEnd(textNode, span.start, span.end)
+        applier.applyToRange(range)
+    }
+}
+
+// Save annotations in a serialized format. SUCCESSCB is a callback to execute
+// upon successful saving.
+function saveAnnotationsSerialized(successcb) {
+    debugger;
+    // Fetch annotations
+    var annotations = getAnnotations()
+    window.alert("Saving This Many Annotations: " + annotations.length)
+    // Convert to an array of serialized annotations in the form "START-END".
+    var serialAnnotations = []
+    for (var i = 0; i < annotations.length; i++) {
+        var ann = annotations[i]
+        serialAnnotations.push(ann.node.className + "$" + ann.start + "$" + ann.end)
+    }
+    // Join to a single serialized string
+    var serialString = serialAnnotations.join(":")
+    // Save to Parse. First look for an existing entry for the user and volume.
+    // If found, update it. Else create a new entry.
+    var query = new Parse.Query(Art3Object)
+    query.equalTo("user", user)
+    query.equalTo("vol", selvol)
+    query.first().then(function(existing) {
+        if (existing) {
+            existing.set("spans", serialString)
+            return existing.save()
+        } else {
+            var artObject = new Art3Object()
+            return artObject.save({"user":user, "vol":selvol, "spans":serialString})
+        }
+    }, savefailure("finding existing entry")
+    ).then(savesuccess(successcb),
+        savefailure("saving new or updating existing entry"))
+}
+
+// Called from HTML. Save annotations. If saved successfully, reset list of
+// article changes.
 function saveAnnotations() {
+    function success() {
+        articleChanges = []
+    }
     if (user != "Default") {
-        // saveAnnotationsByChangeSet()
-        // saveAnnotationsDirectly()
-        // saveAnnotationsXML()
-        saveSerializedSpans()
+        // saveAnnotationsByChangeSet(success)
+        // saveAnnotationsDirectly(success)
+        // saveAnnotationsXML(success)
+        // saveSerializedSpans()
+        saveAnnotationsSerialized(success)
     } else {
         window.alert("Please select a non-default Annotator Name prior prior to saving")
     }
-    articleChanges = [];
 }
 
 function loadVolume(vol) {
@@ -266,7 +379,8 @@ function loadVolume(vol) {
         //console.log("Successfully " + results[0])
         if (results.length > 0) {
             // loadAnnotations(results)
-            loadAnnotationsXML(results)
+            // loadAnnotationsXML(results)
+            loadAnnotationsSerialized(results)
         }
     })
 }

@@ -116,25 +116,27 @@ function checkVol(){
     if (user != "Default"){
         var table = $('#art_table').dataTable();
         selvol = table.$('tr.selected').find('td:first').text();
-        var query = new Parse.Query(VolObject);
-        query.equalTo("vol", selvol);
-        query.find({
-            success: function(results) {
-                //alert("Successfully" + results[0].get("text"))
-                $("#col2text").html(results[0].get("text"));
-            }
-        })
-        var query = new Parse.Query(SerialArtObject);
-        query.equalTo("user", user);
-        query.equalTo("vol", selvol);
-        query.find({
-            success: function(results) {
-                //alert("Successfully" + results[0].get("text"))
-                if (results.length > 0) {
-                    load_serial_article_annotations(results);
+        if (parseInt(selvol) > 0){
+            var query = new Parse.Query(VolObject);
+            query.equalTo("vol", selvol);
+            query.find({
+                success: function(results) {
+                    //alert("Successfully" + results[0].get("text"))
+                    $("#col2text").html(results[0].get("text"));
                 }
-            }
-        })
+            })
+            var query = new Parse.Query(SerialArtObject);
+            query.equalTo("user", user);
+            query.equalTo("vol", selvol);
+            query.find({
+                success: function(results) {
+                    //alert("Successfully" + results[0].get("text"))
+                    if (results.length > 0) {
+                        load_serial_article_annotations(results);
+                    }
+                }
+            });
+        };
 
     } else{
         window.alert("Please select a non-default Annotator Name prior to loading a volume")
@@ -151,6 +153,7 @@ function highlightSelectedText() {
 }
 
 function removeHighlightFromSelectedText() {
+    //applier.undoToSelection();
     highlighter.unhighlightSelection();
 }
 

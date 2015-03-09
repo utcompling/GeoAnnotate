@@ -53,13 +53,12 @@ function getTextNode() {
 // Return an array of annotations as character offsets, where each annotation
 // is an object containing 'start', 'end' and 'node' properties
 function getAnnotations() {
-    var annotations = []
     var nodes = getRangeNodes(makeRange(document.body))
     var textNode = getTextNode()
-    for (var i = 0; i < nodes.length; i++) {
-        var range = makeRange(nodes[i]).toCharacterRange(textNode)
-        annotations.push({start:range.start, end:range.end, node:nodes[i]})
-    }
+    var annotations = nodes.map(function(node) {
+        var range = makeRange(nodes).toCharacterRange(textNode)
+        return {start:range.start, end:range.end, node:node}
+    })
     return annotations
 }
 //
@@ -126,75 +125,16 @@ function saveAnnotationsXML(successcb) {
 }
 */
 
-function serialize() {
-
-    var serial_spans = [];
-    var nodes = getRangeNodes(makeRange(document.getElementById("col2text")))
-    var textNode = getTextNode()
-    for (var i = 0; i < nodes.length; i++) {
-        var spanRange = makeRange(nodes[i]).toCharacterRange(textNode);
-        var applier_class = nodes[i].getAttribute('class')
-        serial_spans.push(applier_class+"$"+spanRange.start+"$"+spanRange.end);
-    };
-
-    console.log(serial_spans.join('|'))
-
-    return serial_spans.join('|')
-
-}
-
-function saveSerializedSpans() {
-    var serial_span = serialize()
-    //need to implement this
-    if (user != "Default"){
-        if (articleChanges.length > 0) {
-            //first save the serialized string in the volume collection
-            //current assuming that everything in article_changes will be in same volume
-            //if strategy is kept, article_changes should be wiped when vol changes
-            var change_row = articleChanges[0].split("-");
-            var change_user = change_row[0];
-            var change_vol = change_row[1];
-            var query = new Parse.Query("Volume");
-            query.equalTo("vol", change_vol);
-            query.equalTo("user", change_user);
-            query.first({
-              success: function(object) {
-
-                    if (typeof object !== 'undefined'){
-
-                        alert("Found already saved vol for user, updating");
-
-                        object.set("serialized_annotations", serial_span);
-
-                        object.save();
-                    } else{
-                        alert("Did not find existing annotation for vol, creating new");
-                        serialArtObject = new SerialArtObject();
-                        serialArtObject.save({"user":change_user, "vol":change_vol, "serialized_annotations":serialized_annot});
-
-                    };
-                
-              },
-              error: function(error) {
-                alert("Error: " + error.code + " " + error.message);
-              }
-            });
-        }
-    }
-}
-
-
 function loadAnnotations(results) {
     removeAnnotations()
     var textNode = getTextNode().childNodes[0]
-    var spans = []
-    for(var a = 0; a < results.length; a++) {
-        var span = results[a].get("span")
+    var spans = results.map(function(result) {
+        var span = result.get("span")
         var split_span = span.split("-")
         var start = split_span[0]
         var end = split_span[1]
-        spans.push({start: start, end: end})
-    }
+        return {start: start, end: end}
+    })
     spans.sort(function(a, b) { return b.start - a.start })
     for (var a = 0; a < spans.length; a++) {
         var span = spans[a]
@@ -209,16 +149,14 @@ function loadAnnotations(results) {
 // saving.
 function saveAnnotationsDirectly(successcb) {
     var annotations = getAnnotations()
-    var parseAnnotations = []
     window.alert("Saving This Many Annotations: " + annotations.length)
-    for (var i = 0; i < annotations.length; i++) {
-        var annotation = annotations[i]
+    var parseAnnotations = annotations.map(function(annotation) {
         var artObject = new Art2Object()
         artObject.set("user", user)
         artObject.set("vol", selvol)
         artObject.set("span", annotation.start + "-" + annotation.end)
-        parseAnnotations.push(artObject)
-    }
+        return artObject
+    })
     var query = new Parse.Query(Art2Object)
     query.find().then(function(existingobjs) {
         Parse.Object.saveAll(parseAnnotations, {
@@ -293,17 +231,14 @@ function saveAnnotationsByChangeSet(successcb) {
 // user and volume.
 function loadAnnotationsSerialized(results) {
     removeAnnotations()
-    debugger;
     var textNode = getTextNode().childNodes[0]
     var spansSerialized = results[0].get("spans").split(":")
-    var spans = []
-    for (var i = 0; i < spansSerialized.length; i++) {
-        var span = spansSerialized[i]
+    var spans = spansSerialized.map(function(span) {
         var split_span = span.split("$")
         var start = split_span[1]
         var end = split_span[2]
-        spans.push({start: start, end: end})
-    }
+        return {start: start, end: end}
+    })
     spans.sort(function(a, b) { return b.start - a.start })
     for (var i = 0; i < spans.length; i++) {
         var span = spans[i]
@@ -321,11 +256,9 @@ function saveAnnotationsSerialized(successcb) {
     var annotations = getAnnotations()
     window.alert("Saving This Many Annotations: " + annotations.length)
     // Convert to an array of serialized annotations in the form "START-END".
-    var serialAnnotations = []
-    for (var i = 0; i < annotations.length; i++) {
-        var ann = annotations[i]
-        serialAnnotations.push(ann.node.className + "$" + ann.start + "$" + ann.end)
-    }
+    var serialAnnotations = annotations.map(function(ann) {
+        return ann.node.className + "$" + ann.start + "$" + ann.end
+    })
     // Join to a single serialized string
     var serialString = serialAnnotations.join(":")
     // Save to Parse. First look for an existing entry for the user and volume.

@@ -3,10 +3,11 @@
 var applier;
 var unapplier;
 var VolObject;
+var VolTextObject;
+var VolSpansObject;
 var SerialArtObject;
 var ArtObject;
 var Art2Object;
-var Art3Object;
 
 var selvol = "0";
 var user = "Default";
@@ -56,7 +57,7 @@ function getAnnotations() {
     var nodes = getRangeNodes(makeRange(document.body))
     var textNode = getTextNode()
     var annotations = nodes.map(function(node) {
-        var range = makeRange(nodes).toCharacterRange(textNode)
+        var range = makeRange(node).toCharacterRange(textNode)
         return {start:range.start, end:range.end, node:node}
     })
     return annotations
@@ -251,7 +252,6 @@ function loadAnnotationsSerialized(results) {
 // Save annotations in a serialized format. SUCCESSCB is a callback to execute
 // upon successful saving.
 function saveAnnotationsSerialized(successcb) {
-    debugger;
     // Fetch annotations
     var annotations = getAnnotations()
     window.alert("Saving This Many Annotations: " + annotations.length)
@@ -263,7 +263,7 @@ function saveAnnotationsSerialized(successcb) {
     var serialString = serialAnnotations.join(":")
     // Save to Parse. First look for an existing entry for the user and volume.
     // If found, update it. Else create a new entry.
-    var query = new Parse.Query(Art3Object)
+    var query = new Parse.Query(VolSpansObject)
     query.equalTo("user", user)
     query.equalTo("vol", selvol)
     query.first().then(function(existing) {
@@ -271,7 +271,7 @@ function saveAnnotationsSerialized(successcb) {
             existing.set("spans", serialString)
             return existing.save()
         } else {
-            var artObject = new Art3Object()
+            var artObject = new VolSpansObject()
             return artObject.save({"user":user, "vol":selvol, "spans":serialString})
         }
     }, savefailure("finding existing entry")
@@ -296,6 +296,46 @@ function saveAnnotations() {
     }
 }
 
+function httpGet(theUrl, callback)
+{
+    var xmlhttp=new XMLHttpRequest();
+    
+    xmlhttp.onreadystatechange=function()
+    {
+        if (xmlhttp.readyState==4 && xmlhttp.status==200)
+        {
+            callback(xmlhttp.responseText);
+        }
+    }
+    xmlhttp.open("GET", theUrl, false);
+    xmlhttp.send();    
+}
+
+function loadVolumeText(vol) {
+    selvol = vol
+    var query = new Parse.Query(VolTextObject)
+    query.equalTo("vol", vol)
+    query.find().then(function(results) {
+        //console.log("Successfully " + results[0].get["text"))
+        httpGet(results[0].get("text").url(), function(text){
+            $("#col2text").html(text);
+            // var q2 = new Parse.Query(ArtObject)
+            var q2 = new Parse.Query(VolSpansObject)
+            q2.equalTo("user", user)
+            q2.equalTo("vol", vol)
+            q2.find().then(function(results2) {
+                if (results2.length > 0) {
+                    // loadAnnotations(results)
+                    // loadAnnotationsXML(results)
+                    loadAnnotationsSerialized(results2)
+                }
+            });
+        })
+        //debugger;
+        //return Parse.Cloud.httpRequest({ url: results[0].get("text").url() })
+    })
+}
+
 function loadVolume(vol) {
     selvol = vol
     var query = new Parse.Query(VolObject)
@@ -304,7 +344,7 @@ function loadVolume(vol) {
         //console.log("Successfully " + results[0].get["text"))
         $("#col2text").html(results[0].get("text"))
         // var q2 = new Parse.Query(ArtObject)
-        var q2 = new Parse.Query(Art3Object)
+        var q2 = new Parse.Query(VolspansObject)
         q2.equalTo("user", user)
         q2.equalTo("vol", vol)
         return q2.find()
@@ -335,11 +375,11 @@ function checkVol() {
                     buttons: {
                         "Yes": function() {
                             saveAnnotations()
-                            loadVolume(newvol)
+                            loadVolumeText(newvol)
                             closeDialog(this)
                         },
                         "No": function() {
-                            loadVolume(newvol)
+                            loadVolumeText(newvol)
                             closeDialog(this)
                         },
                         "Cancel": function() {
@@ -350,7 +390,7 @@ function checkVol() {
                     }
                 })
             } else {
-                loadVolume(newvol)
+                loadVolumeText(newvol)
             }
         }
     } else {
@@ -419,12 +459,13 @@ function init() {
     Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx",
                      "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
-    VolObject = Parse.Object.extend("Text");
+    VolTextObject = Parse.Object.extend("VolumeText");
+    VolSpansObject = Parse.Object.extend("VolumeSpans");
     SerialArtObject = Parse.Object.extend("Volume");
     //Why do we need three separate articles here?
     ArtObject = Parse.Object.extend("Article");
     Art2Object = Parse.Object.extend("Article2");
-    Art3Object = Parse.Object.extend("Article3");
+    //Art3Object = Parse.Object.extend("Article3");
 
     rangy.init();
 

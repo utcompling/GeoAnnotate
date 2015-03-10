@@ -18,12 +18,22 @@ function getSelectionRange() {
     return rangy.getSelection().getRangeAt(0)
 }
 
-// Return true if the range overlaps and annotation
-function overlapsAnnotation(range) {
+// Return true if the range overlaps an annotation
+function overlapsAnnotation(range, exactOK) {
     function containerIsAnnotationChild(container) {
         return container.nodeType === 3 &&
             container.parentNode.className === annotateClass
     }
+    // If the range exactly covers a single text node and covers
+    // the entire text node, then we are OK and not partially
+    // overlapping.
+    if (exactOK && range.startContainer === range.endContainer &&
+        range.startContainer.nodeType === 3 &&
+        range.startOffset === 0 &&
+        range.endOffset === range.startContainer.length)
+        return false
+    // Otherwise, if the start or end is in an annotation text node,
+    // we're overlapping.
     return (containerIsAnnotationChild(range.startContainer) ||
         containerIsAnnotationChild(range.endContainer))
 }
@@ -68,15 +78,6 @@ function removeAnnotations() {
     unapplier.undoToRange(makeRange(document.body))
     articleChanges = []
 }
-
-//I really don't get the point of this function
-/*
-function loadAnnotationsXML(results) {
-    removeAnnotations()
-    $(getTextNode()).html(results[0].get("html"))
-    $(getTextNode()).find('.' + annotateClass).attr("onclick", "spanClick(this)")
-}
-*/
 
 // Function that returns a callback function meant to be called upon successful save in
 // a Parse operation. SUCCESSCB is a callback passed in by the user to be executed
@@ -412,6 +413,20 @@ function getTableRows(table){
     })
 }
 
+document.onkeypress = function (e) {
+    e = e || window.event;
+    //check of 'a' was pressed
+    if (e.keyCode == 97){
+        //window.alert(e.keyCode)
+        var sel = rangy.getSelection();
+        addArticle()
+    }
+    //check if 'r' was pressed
+    if (e.keyCode == 114){
+        removeArticle()
+    }
+};
+
 function nameChange(){
     var el = document.getElementById("selectUser");
     user = el.options[el.selectedIndex].innerHTML;
@@ -419,25 +434,27 @@ function nameChange(){
 
 function addArticle() {
     var selectionRange = getSelectionRange()
-    if (overlapsAnnotation(selectionRange))
-        alert("Selection already contains part of an annotation")
-    else {
-        var nodes = getRangeNodes(selectionRange)
-        if (nodes.length > 0)
-            alert("Selection already contains an annotation")
+    if (selectionRange.startOffset != selectionRange.endOffset){
+        if (overlapsAnnotation(selectionRange, false))
+            alert("Selection already contains part of an annotation")
         else {
-            applier.applyToSelection()
-            var artrange = getSelectionRange().toCharacterRange(getTextNode())
-            var change = user + "-"+ selvol + "-add" + "-" + artrange.start + "-" + artrange.end
-            articleChanges.push(change)
-            console.log("Added " + change + " to article changes")
+            var nodes = getRangeNodes(selectionRange)
+            if (nodes.length > 0)
+                alert("Selection already contains an annotation")
+            else {
+                applier.applyToSelection()
+                var artrange = getSelectionRange().toCharacterRange(getTextNode())
+                var change = user + "-"+ selvol + "-add" + "-" + artrange.start + "-" + artrange.end
+                articleChanges.push(change)
+                console.log("Added " + change + " to article changes")
+            }
         }
     }
 }
 
 function removeArticle() {
     var selectionRange = getSelectionRange()
-    if (overlapsAnnotation(selectionRange))
+    if (overlapsAnnotation(selectionRange, true))
         alert("Selection contains part of an annotation")
     else {
         var nodes = getRangeNodes(selectionRange)
@@ -475,11 +492,8 @@ function init() {
 
     VolTextObject = Parse.Object.extend("VolumeText");
     VolSpansObject = Parse.Object.extend("VolumeSpans");
-    SerialArtObject = Parse.Object.extend("Volume");
-    //Why do we need three separate articles here?
     ArtObject = Parse.Object.extend("Article");
     Art2Object = Parse.Object.extend("Article2");
-    //Art3Object = Parse.Object.extend("Article3");
 
     rangy.init();
 

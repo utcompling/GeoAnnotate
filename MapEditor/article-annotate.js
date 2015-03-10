@@ -398,6 +398,20 @@ function checkVol() {
     }
 }
 
+function getTableRows(table){
+    var query = new Parse.Query(VolTextObject)
+    query.exists("vol")
+    query.find().then(function(results) {
+        //console.log("Successfully " + results[0].get["text"))
+        //$("#col2text").html(results[0].get("text"))
+        for (var i = 0; i < results.length; i++) {
+            var vol = results[i].get("vol")
+            var descrip = results[i].get("description")
+            table.row.add([vol, descrip]).draw();
+        }
+    })
+}
+
 function nameChange(){
     var el = document.getElementById("selectUser");
     user = el.options[el.selectedIndex].innerHTML;
@@ -483,6 +497,9 @@ function init() {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: true
     });
+
+    var table = $('#art_table').DataTable()
+    var rows = getTableRows(table);
 }
 
 // vi:sw=4

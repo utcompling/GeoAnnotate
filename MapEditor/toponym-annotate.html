@@ -164,16 +164,35 @@
             background-repeat: no-repeat;
             background-position: 0px 1px;
         }
+
+        .place {
+            background-color: yellow;
+        }
+
+        .person {
+            background-color: orange;
+        }
+
     </style>
     <script src="toponym-annotate.js"></script>
 </head>
 <body onload="init()">
         <h1 id="title">Toponym Annotation</h1>
         <form>
-            Annotator Name:
-            <select id="selectUser" onchange="nameChange()">
+            Load Article Spans From:
+            <select id="selectUserArticle" onchange="nameChangeArticle()">
               <option>Default</option>
               <option>Master</option>
+              <option>Grant DeLozier</option>
+              <option>Ben Wing</option>
+              <option>Jason Baldridge</option>
+              <option>Scott Nesbit</option>
+            </select>
+        </form>
+        <form>
+            Annotator Name:
+            <select id="selectUserAnnotator" onchange="nameChangeAnnotator()">
+              <option>Default</option>
               <option>Grant DeLozier</option>
               <option>Ben Wing</option>
               <option>Jason Baldridge</option>
@@ -187,24 +206,12 @@
                 <button type="button" onclick="zoomFeatures()">Zoom to Features</button>
                 <button type="button" onclick="saveFeatures()">Save</button>
             </div>
-            <div id="xrightcol4">
-                <table id="art_table" style="width:100%" onclick="checkVol()">
-                    <thead>
-                        <tr>
-                            <th>Art</th>
-                            <th>spans</th>
-                        </tr>
-                    </thead>
-                    <tbody>                                                
-                    </tbody>
-                </table>
-            </div>
             <div id="xrightcol3">
                 <table id="vol_table" style="width:100%" onclick="checkVol()">
                     <thead>
                         <tr>
                             <th>Vol</th>
-                            <th>Description</th>
+                            <th>Num. Articles</th>
                         </tr>
                     </thead>
                     <tbody>                                                
@@ -216,8 +223,9 @@
                     <div id="col2text">
 
                      </div>
-                     <button type="button" onclick="addArticle()">Add Place (a)</button>
-                     <button type="button" onclick="removeArticle()">Remove Place (r)</button>
+                     <button type="button" onclick="addPlace()">Add Place (a)</button>      
+                     <button type="button" onclick="addPerson()">Add Person (e)</button>
+                     <button type="button" onclick="removeAnnotation()">Remove Annotation (r)</button>
                      <button type="button" onclick="saveAnnotations()">Save Annotations</button>
                      <button type="button" onclick="serialize()">serialize</button>
                 </div>

@@ -23,6 +23,23 @@
     <!--This handles selection in dataTable -->
     <script type='text/javascript'>
     $(document).ready(function() {
+        var table = $('#vol_table').DataTable();
+     
+        $('#vol_table tbody').on( 'click', 'tr', function () {
+            if ( $(this).hasClass('selected') ) {
+                $(this).removeClass('selected');
+            }
+            else {
+                table.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+            }
+        } );
+     
+        $('#button').click( function () {
+            table.row('.selected').remove().draw( false );
+        } );
+    } );
+    $(document).ready(function() {
         var table = $('#art_table').DataTable();
      
         $('#art_table tbody').on( 'click', 'tr', function () {
@@ -43,26 +60,23 @@
 
     <style>
         #xouter3{
-        width:80%;
+        width:90%;
         border:1px solid #000;
         float:left;
-        margin:15px 0 15px 9%;
+        margin:15px 0 15px 2%;
         }
         #xleftcol3{
         float: left;
-        width: 33%;
-        background:#eff2df;
+        width: 37%;
         }
         #xmiddlecol3 {
         overflow:hidden;
-        background:#eff2df;
         }
         * html #xmiddlecol3{float:left}
         * html #xmiddlecol3 #xinner3{width:100%;}
 
-        #xinner3 textarea {
+        #xinner3 {
             width: 100%;
-            height: 225px;
         }
 
         table, th, td {
@@ -70,9 +84,22 @@
             border-collapse: collapse;
         }
 
+        #col2text {
+            white-space:pre-wrap;
+            height:500px;
+            overflow:scroll;
+            font-size:0.8em;
+        }
+
+        #xrightcol4 {
+        float:right;
+        width: 12%;
+        position:relative;
+        }
+
         #xrightcol3 {
         float:right;
-        width: 15%;
+        width: 12%;
         position:relative;
         }
 
@@ -82,7 +109,7 @@
 
         #map {
             width: 100%;
-            height: 225px;
+            height: 300px;
             border: 1px solid #ccc;
         }
 
@@ -140,11 +167,18 @@
     </style>
     <script src="toponym-annotate.js"></script>
 </head>
-    <body onload="init()">
-        <h1 id="title">GeoAnnotate Toponym Resolver</h1>
+<body onload="init()">
+        <h1 id="title">Toponym Annotation</h1>
         <form>
             Annotator Name:
-            <input type="text" name="name">
+            <select id="selectUser" onchange="nameChange()">
+              <option>Default</option>
+              <option>Master</option>
+              <option>Grant DeLozier</option>
+              <option>Ben Wing</option>
+              <option>Jason Baldridge</option>
+              <option>Scott Nesbit</option>
+            </select>
         </form>
         <div id="xouter3">
             <div id="xleftcol3">
@@ -153,58 +187,42 @@
                 <button type="button" onclick="zoomFeatures()">Zoom to Features</button>
                 <button type="button" onclick="saveFeatures()">Save</button>
             </div>
-            <div id="xrightcol3">
-                <table id="art_table" style="width:100%">
+            <div id="xrightcol4">
+                <table id="art_table" style="width:100%" onclick="checkVol()">
                     <thead>
                         <tr>
-                            <th>Art ID</th>
-                            <th>Year</th>
+                            <th>Art</th>
+                            <th>spans</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody>                                                
+                    </tbody>
+                </table>
+            </div>
+            <div id="xrightcol3">
+                <table id="vol_table" style="width:100%" onclick="checkVol()">
+                    <thead>
                         <tr>
-                            <td>1</td>
-                            <td>1860</td>       
+                            <th>Vol</th>
+                            <th>Description</th>
                         </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>1861</td>       
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td>1862</td>       
-                        </tr>
-                        <tr>
-                            <td>4</td>
-                            <td>1863</td>       
-                        </tr>
-                        <tr>
-                            <td>5</td>
-                            <td>1864</td>       
-                        </tr>                                                       
+                    </thead>
+                    <tbody>                                                
                     </tbody>
                 </table>
             </div>
             <div id="xmiddlecol3">
                 <div id="xinner3">
-                    <div id="col2text" onclick="checkRange()">
-Reports of Maj. Robert Anderson, U. S. Army, of the evacuation of Fort Moultrie, 5. 0.
+                    <div id="col2text">
 
-No. 11.   FORT SUMTER, S. 0., December 26, 18608 p. m.
-(Received A. G. 0., December 29.)
-    COLONEL:    I have the honor to report that I have just completed, by the blessing of God, the removal to this fort of all of my garrison, except the surgeon, four non-commissioned officers, and seven men.We have one years supply of hospital stores and about four months supply of provisions for my command. I left orders to have all theguns at Fort Moultrie spiked, and the carriages of the 32-pounders, which are old, destroyed. I have sent orders to Captain Foster, who remains at Fort Moultrie, to destroy all the ammunition which he cannot send over. The step which I have taken was, in my opinion, necesary to prevent the effusion of blood.
-    Respectfully, your obedient servant,
-    ROBERT ANDERSON, Major, First Artillery, Commanding.
-    CoL S. COOPER, Adjutant-General.
-
-6   * See also Correspondence and Orders, po8t
-
-                     </textarea>
-                     <button type="button" onclick="addPlace()">Add Place</button>
-                     <button type="button" onclick="removePlace()">Remove Place</button>
+                     </div>
+                     <button type="button" onclick="addArticle()">Add Place (a)</button>
+                     <button type="button" onclick="removeArticle()">Remove Place (r)</button>
+                     <button type="button" onclick="saveAnnotations()">Save Annotations</button>
+                     <button type="button" onclick="serialize()">serialize</button>
                 </div>
             </div>
         </div>
 
-	</body>
+    </body>
 </html>

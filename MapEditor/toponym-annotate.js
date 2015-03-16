@@ -91,7 +91,7 @@ function utf8_to_b64(str) {
 
 // Save annotations in a serialized format. SUCCESSCB is a callback to execute
 // upon successful saving.
-function saveAnnotationsSerialized(successcb) {
+function saveVolumeAnnotations(successcb) {
     // Fetch annotations
     var place_annotations = getAnnotations("place")
     var person_annotations = getAnnotations("person")
@@ -130,35 +130,38 @@ function saveAnnotations() {
         articleChanges = 0
     }
     if (annotUser != "Default") {
-        saveAnnotationsSerialized(success)
+        saveVolumeAnnotations(success)
     } else {
         window.alert("Please select a non-default Annotator Name prior prior to saving")
     }
 }
 
+// Load volume annotations
 function loadVolumeAnnotations(results){
     removeAnnotations()
     var textNode = getTextNode().childNodes[0]
-    var spansSerialized = results[0].get("spans").split(":")
-    var spans = spansSerialized.map(function(span) {
-        var split_span = span.split("$")
-        var class_name = split_span[0]
-        var start = split_span[1]
-        var end = split_span[2]
-        return {start: start, end: end, class_name: class_name}
+    httpGet(results[0].get("spans").url(), function(spansText) {
+        var spansSerialized = spansText.split(":")
+        var spans = spansSerialized.map(function(span) {
+            var split_span = span.split("$")
+            var class_name = split_span[0]
+            var start = split_span[1]
+            var end = split_span[2]
+            return {start: start, end: end, class_name: class_name}
+        })
+        spans.sort(function(a, b) { return b.start - a.start })
+        for (var i = 0; i < spans.length; i++) {
+            var span = spans[i]
+            var range = rangy.createRange()
+            range.setStartAndEnd(textNode, span.start, span.end)
+            if (span.class_name == "place"){
+                place_applier.applyToRange(range)
+            }
+            if (span.class_name == "person"){
+                person_applier.applyToRange(range)
+            }
+        }
     })
-    spans.sort(function(a, b) { return b.start - a.start })
-    for (var i = 0; i < spans.length; i++) {
-        var span = spans[i]
-        var range = rangy.createRange()
-        range.setStartAndEnd(textNode, span.start, span.end)
-        if (span.class_name == "place"){
-            place_applier.applyToRange(range)
-        }
-        if (span.class_name == "person"){
-            person_applier.applyToRange(range)
-        }
-    }
 }
 
 function closeDialog(node) {

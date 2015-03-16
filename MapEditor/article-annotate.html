@@ -21,9 +21,9 @@
     <!--This handles selection in dataTable -->
     <script type='text/javascript'>
     $(document).ready(function() {
-        var table = $('#art_table').DataTable();
+        var table = $('#vol_table').DataTable();
 
-        $('#art_table tbody').on( 'click', 'tr', function () {
+        $('#vol_table tbody').on( 'click', 'tr', function () {
             var el = document.getElementById("selectUser");
             var usr = el.options[el.selectedIndex].innerHTML;
             if (usr != "Default"){
@@ -102,6 +102,7 @@
             content: "\25C0";
         }
     </style>
+    <script src="annotate.js"></script>
     <script src="article-annotate.js"></script>
 </head>
     <body onload="init()">
@@ -121,7 +122,7 @@
             <div id="xleftcol3">
             </div>
             <div id="xrightcol3">
-                <table id="art_table" style="width:100%" onclick="checkVol()">
+                <table id="vol_table" style="width:100%" onclick="checkVol()">
                     <thead>
                         <tr>
                             <th>Vol</th>

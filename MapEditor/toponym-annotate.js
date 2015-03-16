@@ -17,62 +17,12 @@ var person_unapplier;
 
 var vol_serial_span = "";
 
-var placeChanges = [];
-var personChanges = [];
+var articleChanges = 0
 var place_selection = [];
 var selvol = "0";
-var art_user = "Default";
-var annot_user = "Default";
+var artUser = "Default";
 var placeClass = "place";
 var personClass = "person";
-
-function getSelectionRange() {
-    return rangy.getSelection().getRangeAt(0)
-}
-
-// Return true if the range overlaps an annotation
-function overlapsAnnotation(range, exactOK, annotateClass) {
-    function containerIsAnnotationChild(container) {
-        return container.nodeType === 3 &&
-            container.parentNode.className === annotateClass
-    }
-    // If the range exactly covers a single text node and covers
-    // the entire text node, then we are OK and not partially
-    // overlapping.
-    if (exactOK && range.startContainer === range.endContainer &&
-        range.startContainer.nodeType === 3 &&
-        range.startOffset === 0 &&
-        range.endOffset === range.startContainer.length)
-        return false
-    // Otherwise, if the start or end is in an annotation text node,
-    // we're overlapping.
-    return (containerIsAnnotationChild(range.startContainer) ||
-        containerIsAnnotationChild(range.endContainer))
-}
-
-// Return the nodes contained within the range.
-// NOTE: Always check overlapsAnnotation() first.
-// NOTE: Currently, this returns an empty array if we are
-// entirely within a single annotation but not exactly on it.
-function getRangeNodes(range, annotateClasses) {
-    if (range.startContainer === range.endContainer &&
-        range.startContainer.nodeType === 3 &&
-        annotateClasses.indexOf(range.startContainer.parentNode.className) > -1)
-        return [range.startContainer]
-    return range.getNodes(false, function(node) {
-      return (annotateClasses.indexOf(node.className) > -1)
-    })
-}
-
-function makeRange(node) {
-    var range = rangy.createRange()
-    range.selectNode(node)
-    return range
-}
-
-function getTextNode() {
-    return document.getElementById('col2text')
-}
 
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     initialize: function(layer, options) {
@@ -119,8 +69,6 @@ function zoomFeatures() {
     window.alert("Zoom Action Needed")
 }
 
-
-
 function match_ranges(sometext, re) {
     var matches = [];
     while ((m = re.exec(sometext)) !== null) {
@@ -130,56 +78,11 @@ function match_ranges(sometext, re) {
 };
 
 function addPlace() {
-    var selectionRange = getSelectionRange()
-    if (selectionRange.startOffset != selectionRange.endOffset){
-        if (overlapsAnnotation(selectionRange, false, "place"))
-            alert("Selection already contains part of an annotation")
-        else {
-            var nodes = getRangeNodes(selectionRange, ["place"])
-            if (nodes.length > 0)
-                alert("Selection already contains an annotation")
-            else {
-                place_applier.applyToSelection()
-                //var placerange = getSelectionRange().toCharacterRange(getTextNode())
-                //var change = annot_user + "-"+ selvol + "-add" + "-place-" + placerange.start + "-" + placerange.end
-                //placeChanges.push(change)
-                console.log("Added a place")
-            }
-        }
-    }
+    addAnnotation("place", place_applier)
 }
 
 function addPerson() {
-    var selectionRange = getSelectionRange()
-    if (selectionRange.startOffset != selectionRange.endOffset){
-        if (overlapsAnnotation(selectionRange, false, "person"))
-            alert("Selection already contains part of an annotation")
-        else {
-            var nodes = getRangeNodes(selectionRange, ["person"])
-            if (nodes.length > 0)
-                alert("Selection already contains an annotation")
-            else {
-                person_applier.applyToSelection()
-                //var personrange = getSelectionRange().toCharacterRange(getTextNode())
-                //var change = annot_user + "-"+ selvol + "-add" + "-person-" + personrange.start + "-" + personrange.end
-                //personChanges.push(change)
-                console.log("Added a person")
-            }
-        }
-    }
-}
-
-// Return an array of annotations as character offsets, where each annotation
-// is an object containing 'start', 'end' and 'node' properties
-function getAnnotations(annotateClass) {
-    var nodes = getRangeNodes(makeRange(document.body), [annotateClass])
-    var textNode = getTextNode()
-    //debugger;
-    var ne_annotations = nodes.map(function(node) {
-        var range = makeRange(node).toCharacterRange(textNode)
-        return {start:range.start, end:range.end, node:node}
-    })
-    return ne_annotations
+    addAnnotation("person", person_applier)
 }
 
 function utf8_to_b64(str) {
@@ -192,7 +95,7 @@ function saveAnnotationsSerialized(successcb) {
     // Fetch annotations
     var place_annotations = getAnnotations("place")
     var person_annotations = getAnnotations("person")
-    var ne_annotations = person_annotations.concat(place_annotations);
+    var ne_annotations = person_annotations.concat(place_annotations)
     window.alert("Saving This Many Annotations: " + ne_annotations.length)
     // Convert to an array of serialized annotations in the form "START-END".
     var serialAnnotations = ne_annotations.map(function(ann) {
@@ -201,11 +104,11 @@ function saveAnnotationsSerialized(successcb) {
     // Join to a single serialized string
     var serialString = serialAnnotations.join(":")
     var base64 = utf8_to_b64(serialString);
-    var parse_file = new Parse.File((annot_user + "-" + selvol + +".txt"), { base64: base64 });
+    var parse_file = new Parse.File((annotUser + "-" + selvol + +".txt"), { base64: base64 });
     // Save to Parse. First look for an existing entry for the user and volume.
     // If found, update it. Else create a new entry.
     var query = new Parse.Query(NESpansObject)
-    query.equalTo("user", annot_user)
+    query.equalTo("user", annotUser)
     query.equalTo("vol", selvol)
     query.first().then(function(existing) {
         if (existing) {
@@ -213,7 +116,7 @@ function saveAnnotationsSerialized(successcb) {
             return existing.save()
         } else {
             var neSpansObject = new NESpansObject()
-            return neSpansObject.save({"user":annot_user, "vol":selvol, "spans":parse_file})
+            return neSpansObject.save({"user":annotUser, "vol":selvol, "spans":parse_file})
         }
     }, savefailure("finding existing entry")
     ).then(savesuccess(successcb),
@@ -224,10 +127,9 @@ function saveAnnotationsSerialized(successcb) {
 // article changes.
 function saveAnnotations() {
     function success() {
-        placeChanges = []
-        personChanges = []
+        articleChanges = 0
     }
-    if (annot_user != "Default") {
+    if (annotUser != "Default") {
         saveAnnotationsSerialized(success)
     } else {
         window.alert("Please select a non-default Annotator Name prior prior to saving")
@@ -235,7 +137,7 @@ function saveAnnotations() {
 }
 
 function loadVolumeAnnotations(results){
-    removeAnnotations();
+    removeAnnotations()
     var textNode = getTextNode().childNodes[0]
     var spansSerialized = results[0].get("spans").split(":")
     var spans = spansSerialized.map(function(span) {
@@ -259,76 +161,39 @@ function loadVolumeAnnotations(results){
     }
 }
 
-function httpGet(theUrl, callback)
-{
-    var xmlhttp=new XMLHttpRequest();
-    
-    xmlhttp.onreadystatechange=function()
-    {
-        if (xmlhttp.readyState==4 && xmlhttp.status==200)
-        {
-            callback(xmlhttp.responseText);
-        }
-    }
-    xmlhttp.open("GET", theUrl, false);
-    xmlhttp.send();    
+function closeDialog(node) {
+    $(node).dialog("close")
 }
 
-function loadVolumeText(vol) {
-    selvol = vol
-    var query = new Parse.Query(VolTextObject)
-    query.equalTo("vol", vol)
-    query.find().then(function(results) {
-        //console.log("Successfully " + results[0].get["text"))
-        httpGet(results[0].get("text").url(), function(text){
-            $("#col2text").html(text);
-            // var q2 = new Parse.Query(ArtObject)
-            var q2 = new Parse.Query(NESpansObject)
-            q2.equalTo("user", annot_user)
-            q2.equalTo("vol", vol)
-            q2.find().then(function(results2) {
-                if (results2.length > 0) {
-                    // loadAnnotations(results)
-                    // loadAnnotationsXML(results)
-                    loadVolumeAnnotations(results2)
-                }
-            });
-        })
-        //debugger;
-        //return Parse.Cloud.httpRequest({ url: results[0].get("text").url() })
-    })
-}
-
-function checkVol() {
-    if (annot_user != "Default") {
-        var table = $('#vol_table').DataTable()
+function checkVol(tableSelector) {
+    if (annotUser != "Default") {
+        var table = $(tableSelector).DataTable()
         var ret = table.$('tr.selected')
         if (ret.length > 0) {
-            selvol = table.$('tr.selected').find('td:first').text();
-            if ((placeChanges.length + personChanges.length) > 0) {
+            var newvol = table.$('tr.selected').find('td:first').text()
+            if (articleChanges > 0) {
                 $("<div>Do you want to save the existing annotations?</div>").dialog({
                     resizable: false,
                     modal: true,
                     buttons: {
                         "Yes": function() {
                             saveAnnotations()
-                            //loadVolumeText(newvol)
+                            loadVolumeText(newvol, NESpansObject)
                             closeDialog(this)
                         },
                         "No": function() {
-                            //loadVolumeText(newvol)
+                            loadVolumeText(newvol, NESpansObject)
                             closeDialog(this)
-                        }
-                        /*
+                        },
                         "Cancel": function() {
                             console.log("Canceled")
                             window.alert("FIXME: We should set the visibly selected volume to the old one")
                             closeDialog(this)
-                        }*/
+                        }
                     }
                 })
             } 
-            loadVolumeText(selvol)
+            loadVolumeText(newvol, NESpansObject)
         }
     } else {
         window.alert("Please select a non-default Annotator name prior to loading a volume")
@@ -342,10 +207,10 @@ function getArtTableRows(vol){
     vol_serial_spans
 }
 
-function getVolTableRows(table){
+function getVolSpanTableRows(table){
     var query = new Parse.Query(VolSpansObject)
     query.exists("vol")
-    query.equalTo("user", art_user)
+    query.equalTo("user", artUser)
     query.find().then(function(results) {
         //console.log("Successfully " + results[0].get["text"))
         //$("#col2text").html(results[0].get("text"))
@@ -358,27 +223,26 @@ function getVolTableRows(table){
     })
 }
 
-function nameChangeArticle(){
+function nameChangeArticle() {
     var el = document.getElementById("selectUserArticle");
-    art_user = el.options[el.selectedIndex].innerHTML;
+    artUser = el.options[el.selectedIndex].innerHTML;
     var table = $('#vol_table').DataTable()
-    if (art_user != "Default"){
-        var rows = getVolTableRows(table);
+    if (artUser != "Default"){
+        // var rows = getVolSpanTableRows(table);
     }else{
         window.alert("Please select a non default user for Article Pool");
     }
 }
 
-function nameChangeAnnotator(){
+function nameChangeAnnotator() {
     var el = document.getElementById("selectUserAnnotator");
-    annot_user = el.options[el.selectedIndex].innerHTML;
+    annotUser = el.options[el.selectedIndex].innerHTML;
 }
 
 function removeAnnotations() {
     place_unapplier.undoToRange(makeRange(document.body))
-    placeChanges = [];
     person_unapplier.undoToRange(makeRange(document.body))
-    personChanges = [];
+    articleChanges = 0
 }
 
 document.onkeypress = function (e) {
@@ -406,8 +270,8 @@ function removeAnnotation() {
     if (overlapsAnnotation(selectionRange, true, "place") || overlapsAnnotation(selectionRange, true, "person"))
         alert("Selection contains part of an annotation")
     else {
-        place_unapplier.undoToSelection();
-        person_unapplier.undoToSelection();
+        place_unapplier.undoToSelection()
+        person_unapplier.undoToSelection()
     }
 }
 
@@ -432,27 +296,6 @@ function saveFeatures() {
 
 }
 
-// Function that returns a callback function meant to be called upon successful save in
-// a Parse operation. SUCCESSCB is a callback passed in by the user to be executed
-// by the returned callback, which also logs a save message.
-function savesuccess(successcb) {
-    return function(obj) {
-        console.log("Saved volume " + selvol + " for user " + annot_user)
-        successcb()
-    }
-}
-
-// Function that returns a callback function meant to be called as a failure callback
-// from a Parse operation. The OPERATION argument, if given, specifies the operation
-// during which the failure occurred and will appear in the message.
-function savefailure(operation) {
-    return function(error) {
-        window.alert("Failure saving volume " + selvol + " for user " + annot_user +
-                     (operation ? " during " + operation : "") + ": " + error.message +
-                     " (" + error.code + ")")
-    }
-}
-
 function init() {
 
     var extent = new OpenLayers.Bounds(
@@ -468,6 +311,9 @@ function init() {
     //toponymObject = new ToponymObject();
 
     rangy.init();
+
+    var table = $('#vol_table').DataTable()
+    var rows = getVolTableRows(table)
 
     place_applier = rangy.createClassApplier(placeClass, {
         elementAttributes: {onclick:"spanClick(this)"},
@@ -551,5 +397,7 @@ function init() {
     panel.addControls([save, del, edit, draw]);
     map.addControl(panel);
     map.zoomToExtent(extent, true);
-
 }
+
+// Set 4-space indentation for vi
+// vi:sw=4

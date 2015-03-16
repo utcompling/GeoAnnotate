@@ -7,8 +7,8 @@
     <script src="openlayers/lib/OpenLayers.js"></script>
     <script src="//www.parsecdn.com/js/parse-1.3.5.min.js"></script>
     <script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="//code.jquery.com/ui/1.11.3/jquery-ui.min.js"></script>
     <script src="rangy/lib/rangy-core.js"></script>
-    <script src="rangy/lib/rangy-highlighter.js"></script>
     <script src="rangy/lib/rangy-textrange.js"></script>
     <script src="rangy/lib/rangy-classapplier.js"></script>
     <script src="//cdn.datatables.net/1.10.5/js/jquery.dataTables.min.js"></script>
@@ -26,23 +26,6 @@
         var table = $('#vol_table').DataTable();
      
         $('#vol_table tbody').on( 'click', 'tr', function () {
-            if ( $(this).hasClass('selected') ) {
-                $(this).removeClass('selected');
-            }
-            else {
-                table.$('tr.selected').removeClass('selected');
-                $(this).addClass('selected');
-            }
-        } );
-     
-        $('#button').click( function () {
-            table.row('.selected').remove().draw( false );
-        } );
-    } );
-    $(document).ready(function() {
-        var table = $('#art_table').DataTable();
-     
-        $('#art_table tbody').on( 'click', 'tr', function () {
             if ( $(this).hasClass('selected') ) {
                 $(this).removeClass('selected');
             }
@@ -174,6 +157,7 @@
         }
 
     </style>
+    <script src="annotate.js"></script>
     <script src="toponym-annotate.js"></script>
 </head>
 <body onload="init()">
@@ -207,11 +191,11 @@
                 <button type="button" onclick="saveFeatures()">Save</button>
             </div>
             <div id="xrightcol3">
-                <table id="vol_table" style="width:100%" onclick="checkVol()">
+                <table id="vol_table" style="width:100%" onclick="checkVol('#vol_table')">
                     <thead>
                         <tr>
                             <th>Vol</th>
-                            <th>Num. Articles</th>
+                            <th>Description</th>
                         </tr>
                     </thead>
                     <tbody>                                                

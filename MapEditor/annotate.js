@@ -6,24 +6,36 @@ function getSelectionRange() {
     return rangy.getSelection().getRangeAt(0)
 }
 
-// Return true if the range overlaps an annotation
+// Return true if the range overlaps an annotation, i.e. the start or end
+// of the range is contained within an annotation. This doesn't check the
+// case where the start and end are in separate text nodes with annotations
+// in between; that's handled separately by the callers. If `exactOK` is
+// given, the function only returns true on a strictly partial overlap,
+// not when the range completely contains an annotation and where one end
+// is exactly at an edge of the annotation. `exactOK` is given when deleting
+// an annotation, so we can delete an annotation we're exactly on.
+// When adding, we don't want to allow this -- we should have no overlap at
+// all. When `exactOK` is given, we basically look to see if we're in the
+// iddle of an annotation (i.e. not pointing to the beginning or end of an
+// annotation), and disallow that.
 function overlapsAnnotation(range, exactOK, annotateClass) {
-    function containerIsAnnotationChild(container) {
-        return container.nodeType === 3 &&
-            container.parentNode.className === annotateClass
+    function containerIsAnnotationChild(container, offset) {
+        // If we're not contained in a text-node child of an annotation node,
+        // return false.
+        if (container.nodeType != 3 || // not a text node
+            container.parentNode.className !== annotateClass)
+            return false
+        if (!exactOK)
+            return true
+        // If exactOK, only return true if we're within (not at the edges of)
+        // the text node.
+        return offset > 0 && offset < container.length
     }
-    // If the range exactly covers a single text node and covers
-    // the entire text node, then we are OK and not partially
-    // overlapping.
-    if (exactOK && range.startContainer === range.endContainer &&
-        range.startContainer.nodeType === 3 &&
-        range.startOffset === 0 &&
-        range.endOffset === range.startContainer.length)
-        return false
     // Otherwise, if the start or end is in an annotation text node,
     // we're overlapping.
-    return (containerIsAnnotationChild(range.startContainer) ||
-        containerIsAnnotationChild(range.endContainer))
+    return (containerIsAnnotationChild(range.startContainer,
+                                       range.startOffset) ||
+        containerIsAnnotationChild(range.endContainer, range.endOffset))
 }
 
 // Return the nodes contained within the range.
@@ -31,9 +43,18 @@ function overlapsAnnotation(range, exactOK, annotateClass) {
 // NOTE: Currently, this returns an empty array if we are
 // entirely within a single annotation but not exactly on it.
 function getRangeNodes(range, annotateClasses) {
+    // If the selection is entirely within a text node that's the child of
+    // an annotation, return the annotation, because getNodes() won't find
+    // the annotation.
     if (range.startContainer === range.endContainer &&
-        range.startContainer.nodeType === 3 &&
+        range.startContainer.nodeType === 3 && // text node
         annotateClasses.indexOf(range.startContainer.parentNode.className) > -1)
+        return [range.startContainer.parentNode]
+    // If the selection is exactly on a single annotation, getNodes() doesn't
+    // seem to find it, either, which is a bug; check for this case as well.
+    if (range.startContainer === range.endContainer &&
+        range.startContainer.nodeType === 1 && // element node
+        annotateClasses.indexOf(range.startContainer.className) > -1)
         return [range.startContainer]
     return range.getNodes(false, function(node) {
       return (annotateClasses.indexOf(node.className) > -1)
@@ -64,6 +85,7 @@ function getAnnotations(annotateClass) {
 }
 
 function addAnnotation(clazz, applier) {
+    //debugger;
     var selectionRange = getSelectionRange()
     if (selectionRange.startOffset != selectionRange.endOffset) {
         if (overlapsAnnotation(selectionRange, false, clazz))

@@ -1,0 +1,105 @@
+#xouter3{
+width:90%;
+border:1px solid #000;
+float:left;
+margin:15px 0 15px 2%;
+}
+#xleftcol3{
+float: left;
+width: 37%;
+}
+#xmiddlecol3 {
+overflow:hidden;
+}
+* html #xmiddlecol3{float:left}
+* html #xmiddlecol3 #xinner3{width:100%;}
+
+#xinner3 {
+    width: 100%;
+}
+
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+#col2text {
+    white-space:pre-wrap;
+    height:500px;
+    overflow:scroll;
+    font-size:0.8em;
+}
+
+#xrightcol4 {
+float:right;
+width: 12%;
+position:relative;
+}
+
+#xrightcol3 {
+float:right;
+width: 12%;
+position:relative;
+}
+
+.selected td {
+    background-color: aqua !important; /* Add !important to make sure override datables base styles */
+ }
+
+#map {
+    width: 100%;
+    height: 300px;
+    border: 1px solid #ccc;
+}
+
+.customEditingToolbar {
+    float: right;
+    right: 0px;
+    height: 30px; 
+}
+.customEditingToolbar div {
+    float: right;
+    margin: 5px;
+    width: 24px;
+    height: 24px;
+}
+.olControlNavigationItemActive { 
+    background-image: url("openlayers/theme/default/img/editing_tool_bar.png");
+    background-repeat: no-repeat;
+    background-position: -103px -23px; 
+}
+.olControlNavigationItemInactive { 
+    background-image: url("openlayers/theme/default/img/editing_tool_bar.png");
+    background-repeat: no-repeat;
+    background-position: -103px -0px; 
+}
+.olControlDrawFeaturePolygonItemInactive { 
+    background-image: url("openlayers/theme/default/img/editing_tool_bar.png");
+    background-repeat: no-repeat;
+    background-position: -26px 0px; 
+}
+.olControlDrawFeaturePolygonItemActive { 
+    background-image: url("openlayers/theme/default/img/editing_tool_bar.png");
+    background-repeat: no-repeat;
+    background-position: -26px -23px ;                                                                   
+}
+.olControlModifyFeatureItemActive { 
+    background-image: url(openlayers/theme/default/img/move_feature_on.png);
+    background-repeat: no-repeat;
+    background-position: 0px 1px;
+}
+.olControlModifyFeatureItemInactive { 
+    background-image: url(openlayers/theme/default/img/move_feature_off.png);
+    background-repeat: no-repeat;
+    background-position: 0px 1px;
+}
+.olControlDeleteFeatureItemActive { 
+    background-image: url(openlayers/theme/default/img/remove_point_on.png);
+    background-repeat: no-repeat;
+    background-position: 0px 1px;
+}
+.olControlDeleteFeatureItemInactive { 
+    background-image: url(openlayers/theme/default/img/remove_point_off.png);
+    background-repeat: no-repeat;
+    background-position: 0px 1px;
+}

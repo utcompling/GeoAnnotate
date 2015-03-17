@@ -48,6 +48,11 @@ function init() {
         {clazz: personClass, applier: personApplier, unapplier: personUnapplier}
     ]
 
+    keyCodeActions = [
+        {code: 65, action: addPlace},
+        {code: 69, action: addPerson},
+        {code: 82, action: removeAnnotation}
+    ]
 }
 
 // Set 4-space indentation for vi

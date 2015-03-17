@@ -4,8 +4,9 @@ var VolTextObject;
 var map, annotationLayer;
 
 var annotationChanges = 0
-var selvol = "0";
-var annotationClassesAndAppliers;
+var selvol = "0"
+var annotationClassesAndAppliers
+var keyCodeActions
 
 $(document).ready(function() {
     // This handles selection in dataTable
@@ -34,22 +35,10 @@ $(document).ready(function() {
         // Allow arrow keys, home, end, pgup, pgdn
         if (e.keyCode < 33 || e.keyCode > 40)
             e.preventDefault()
-        //check if 'a' was pressed
-        if (e.keyCode == 65){
-            //window.alert(e.keyCode)
-            var sel = rangy.getSelection();
-            addPlace()
-        }
-        //check if 'e' was pressed
-        if (e.keyCode == 69){
-            //window.alert(e.keyCode)
-            var sel = rangy.getSelection();
-            addPerson()
-        }
-        //check if 'r' was pressed
-        if (e.keyCode == 82){
-            removeAnnotation()
-        }
+        keyCodeActions.forEach(function(action) {
+            if (e.keyCode == action.code)
+                action.action()
+        })
     })
 } );
 

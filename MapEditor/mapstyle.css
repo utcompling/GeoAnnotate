@@ -1,7 +1,9 @@
 #xouter3{
 width:90%;
-border:1px solid #000;
+/*border:1px solid #000;*/
 float:left;
+border-top:1px solid  #000;
+border-bottom:1px solid  #000;
 margin:15px 0 15px 2%;
 }
 #xleftcol3{
@@ -40,6 +42,12 @@ position:relative;
 float:right;
 width: 12%;
 position:relative;
+}
+
+.datatable td {
+    font-size:11px;
+    /*overflow: hidden;
+    white-space: nowrap;*/
 }
 
 .selected td {

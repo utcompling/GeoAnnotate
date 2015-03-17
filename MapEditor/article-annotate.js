@@ -66,10 +66,9 @@ function loadVolumeAnnotations(results) {
 
 // Save annotations in a serialized format. SUCCESSCB is a callback to execute
 // upon successful saving.
-function saveVolumeAnnotations(successcb) {
+function saveVolumeAnnotations() {
     // Fetch annotations
     var annotations = getAnnotations([annotateClass])
-    window.alert("Saving This Many Annotations: " + annotations.length)
     // Convert to an array of serialized annotations in the form "START-END".
     var serialAnnotations = annotations.map(function(ann) {
         return ann.node.className + "$" + ann.start + "$" + ann.end
@@ -90,7 +89,10 @@ function saveVolumeAnnotations(successcb) {
             return artObject.save({"user":annotUser, "vol":selvol, "spans":serialString})
         }
     }, savefailure("finding existing entry")
-    ).then(savesuccess(successcb),
+    ).then(savesuccess(function() {
+        annotationChanges = 0
+        logMessage("Saved " + annotations.length + " annotations")
+    }),
         savefailure("saving new or updating existing entry"))
 }
 
@@ -107,7 +109,7 @@ function saveAnnotations() {
         // saveSerializedSpans()
         saveVolumeAnnotations(success)
     } else {
-        window.alert("Please select a non-default Annotator Name prior prior to saving")
+        logMessage("Please select a non-default Annotator Name prior prior to saving")
     }
 }
 
@@ -147,24 +149,9 @@ function checkVol() {
             }
         }
     } else {
-        window.alert("Please select a non-default Annotator name prior to loading a volume")
+        logMessage("Please select a non-default Annotator name prior to loading a volume")
     }
 }
-
-document.onkeypress = function (e) {
-    e = e || window.event;
-    //check of 'a' was pressed
-    if (e.keyCode == 97){
-        //window.alert(e.keyCode)
-        var sel = rangy.getSelection();
-        addArticle()
-    }
-    //check if 'r' was pressed
-    if (e.keyCode == 114){
-        removeAnnotation()
-    }
-    e.preventDefault()
-};
 
 function nameChangeAnnotator(){
     var el = document.getElementById("selectUserAnnotator");
@@ -178,14 +165,14 @@ function addArticle() {
 function removeAnnotation() {
     var selectionRange = getSelectionRange()
     if (overlapsAnnotation(selectionRange, true, [annotateClass]))
-        alert("Selection contains part of an annotation")
+        logMessage("Selection contains part of an annotation")
     else {
         unapplier.undoToSelection()
     }
 }
 
 function spanClick(element){
-    //window.alert("Clicked inside article");
+    //logMessage("Clicked inside article");
     var range = rangy.createRange();
     range.selectNodeContents(element);
     var sel = rangy.getSelection();

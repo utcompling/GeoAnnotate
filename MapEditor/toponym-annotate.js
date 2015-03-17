@@ -107,10 +107,6 @@ function zoomFeatures() {
     window.alert("Zoom Action Needed")
 }
 
-function logMessage(mess) {
-    $("#log").html(mess)
-}
-
 function addPlace() {
     addAnnotation(placeClass, placeApplier)
 }

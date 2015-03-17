@@ -2,6 +2,10 @@
 
 var annotUser = "Default"
 
+function logMessage(mess) {
+    $("#log").html(mess)
+}
+
 function getSelectionRange() {
     return rangy.getSelection().getRangeAt(0)
 }

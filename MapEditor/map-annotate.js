@@ -8,6 +8,9 @@ var selvol = "0"
 var annotationClassesAndAppliers
 var keyCodeActions
 
+var recentLocations = []
+var recentLocationsMaxLength = 5
+
 $(document).ready(function() {
     // This handles selection in dataTable
     var table = $('#vol_table').DataTable();
@@ -118,14 +121,36 @@ function addMapFeaturesToSelection() {
     rangenodes.forEach(function(node) {
         setStoredMapFeatures(node, jsonfeats)
     })
+    if (rangenodes.length > 0)
+        addToRecentLocations(rangenodes[0].innerHTML.substring(0, 20), jsonfeats)
 }
 
 function zoomFeatures() {
     window.alert("Zoom Action Needed")
 }
 
-function utf8_to_b64(str) {
-    return window.btoa(unescape(encodeURIComponent(str)))
+function populateRecentLocations() {
+    var htmlarr = []
+    for (var i = recentLocations.length - 1; i >= 0; i--) {
+        var recentLoc = recentLocations[i]
+        var html = '<li onclick="locClicked(event)" data-jsonfeats="' +
+                     encodeURI(recentLoc.jsonfeats) + '">' +
+                     recentLoc.html + '</li>'
+        console.log(html)
+        htmlarr.push(html)
+    }
+    $('#recentlocs').html(htmlarr.join("\n"))
+}
+
+function addToRecentLocations(html, jsonfeats) {
+    if (recentLocations.length >= recentLocationsMaxLength)
+        recentLocations.slice(1)
+    recentLocations.push({html: html, jsonfeats: jsonfeats})
+    populateRecentLocations()
+}
+
+function locClicked(e) {
+    alert($(e.target).attr('data-jsonfeats'))
 }
 
 // Save annotations in a serialized format.
@@ -139,7 +164,7 @@ function saveVolumeAnnotations() {
     })
     // Join to a single serialized string
     var serialString = serialAnnotations.join("|")
-    var base64 = utf8_to_b64(serialString);
+    var base64 = utf8ToB64(serialString);
     var parse_file = new Parse.File((annotUser + "-" + selvol +".txt"), { base64: base64 });
     // Save to Parse. First look for an existing entry for the user and volume.
     // If found, update it. Else create a new entry.

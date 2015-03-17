@@ -22,6 +22,10 @@ var place_selection = [];
 var selvol = "0";
 var placeClass = "place";
 var personClass = "person";
+var annotationClassesAndAppliers = [
+    {clazz: placeClass, applier: place_applier, unapplier: place_unapplier},
+    {clazz: personClass, applier: person_applier, unapplier: person_unapplier}]
+var annotationClasses = [placeClass, personClass]
 
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     initialize: function(layer, options) {
@@ -82,7 +86,7 @@ function jsonToMapFeatures(jsonstr) {
 
 function getSelectionNodes() {
     var selectionRange = getSelectionRange()
-    return getRangeNodes(selectionRange, [personClass, placeClass])
+    return getRangeNodes(selectionRange, annotationClasses)
 }
 
 function getStoredMapFeatures(node) {
@@ -121,7 +125,7 @@ function utf8_to_b64(str) {
 // upon successful saving.
 function saveVolumeAnnotations(successcb) {
     // Fetch annotations
-    var ne_annotations = getAnnotations([placeClass, personClass])
+    var ne_annotations = getAnnotations(annotationClasses)
     window.alert("Saving This Many Annotations: " + ne_annotations.length)
     // Convert to an array of serialized annotations in the form "CLASS$START$END".
     var serialAnnotations = ne_annotations.map(function(ann) {
@@ -131,7 +135,7 @@ function saveVolumeAnnotations(successcb) {
     // Join to a single serialized string
     var serialString = serialAnnotations.join("|")
     var base64 = utf8_to_b64(serialString);
-    var parse_file = new Parse.File((annotUser + "-" + selvol + +".txt"), { base64: base64 });
+    var parse_file = new Parse.File((annotUser + "-" + selvol +".txt"), { base64: base64 });
     // Save to Parse. First look for an existing entry for the user and volume.
     // If found, update it. Else create a new entry.
     var query = new Parse.Query(NESpansObject)
@@ -187,7 +191,7 @@ function loadVolumeAnnotations(results) {
             if (span.className == personClass) {
                 person_applier.applyToRange(range)
             }
-            getRangeNodes(range, [personClass, placeClass]).forEach(function(node) {
+            getRangeNodes(range, annotationClasses).forEach(function(node) {
                 if (span.jsonmapfeats)
                     setStoredMapFeatures(node, span.jsonmapfeats)
             })
@@ -240,6 +244,7 @@ function nameChangeAnnotator() {
 }
 
 function removeAnnotations() {
+    annotationLayer.destroyFeatures()
     place_unapplier.undoToRange(makeRange(document.body))
     person_unapplier.undoToRange(makeRange(document.body))
     annotationChanges = 0
@@ -267,7 +272,7 @@ document.onkeypress = function (e) {
 
 function removeAnnotation() {
     var selectionRange = getSelectionRange()
-    if (overlapsAnnotation(selectionRange, true, [placeClass, personClass]))
+    if (overlapsAnnotation(selectionRange, true, annotationClasses))
         alert("Selection contains part of an annotation")
     else {
         place_unapplier.undoToSelection()

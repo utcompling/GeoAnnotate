@@ -2,6 +2,19 @@
 
 var annotUser = "Default"
 
+function htmlEscape(str) {
+    return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+}
+
+function utf8ToB64(str) {
+    return window.btoa(unescape(encodeURIComponent(str)))
+}
+
 function logMessage(mess) {
     $("#log").html(mess)
 }
@@ -153,7 +166,7 @@ function loadVolumeText(vol, spansObject) {
     query.find().then(function(results) {
         //console.log("Successfully " + results[0].get["text"))
         httpGet(results[0].get("text").url(), function(text){
-            $("#col2text").html(text);
+            $("#col2text").html(htmlEscape(text))
             var q2 = new Parse.Query(spansObject)
             q2.equalTo("user", annotUser)
             q2.equalTo("vol", vol)

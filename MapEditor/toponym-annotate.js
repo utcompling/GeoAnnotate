@@ -1,13 +1,11 @@
-"use strict";
+"use strict"
 
 var map, annotationLayer;
 
-//var ne_annotations;
+//var annotations;
 
 var VolTextObject;
-var VolSpansObject;
-var NESpansObject;
-var ToponymObject;
+var SpansObject;
 
 var placeApplier;
 var placeUnapplier;
@@ -15,10 +13,7 @@ var placeUnapplier;
 var personApplier;
 var personUnapplier;
 
-var vol_serial_span = "";
-
 var annotationChanges = 0
-var place_selection = [];
 var selvol = "0";
 var placeClass = "place";
 var personClass = "person";
@@ -119,13 +114,12 @@ function utf8_to_b64(str) {
     return window.btoa(unescape(encodeURIComponent(str)))
 }
 
-// Save annotations in a serialized format. SUCCESSCB is a callback to execute
-// upon successful saving.
+// Save annotations in a serialized format.
 function saveVolumeAnnotations() {
     // Fetch annotations
-    var ne_annotations = getAnnotations(annotationClasses)
+    var annotations = getAnnotations(annotationClasses)
     // Convert to an array of serialized annotations in the form "CLASS$START$END".
-    var serialAnnotations = ne_annotations.map(function(ann) {
+    var serialAnnotations = annotations.map(function(ann) {
         var jsonmapfeats = getStoredMapFeatures(ann.node) || ""
         return ann.node.className + "$" + ann.start + "$" + ann.end + "$" + jsonmapfeats
     })
@@ -135,7 +129,7 @@ function saveVolumeAnnotations() {
     var parse_file = new Parse.File((annotUser + "-" + selvol +".txt"), { base64: base64 });
     // Save to Parse. First look for an existing entry for the user and volume.
     // If found, update it. Else create a new entry.
-    var query = new Parse.Query(NESpansObject)
+    var query = new Parse.Query(SpansObject)
     query.equalTo("user", annotUser)
     query.equalTo("vol", selvol)
     query.first().then(function(existing) {
@@ -143,13 +137,13 @@ function saveVolumeAnnotations() {
             existing.set("spans", parse_file)
             return existing.save()
         } else {
-            var neSpansObject = new NESpansObject()
-            return neSpansObject.save({"user":annotUser, "vol":selvol, "spans":parse_file})
+            var spansObject = new SpansObject()
+            return spansObject.save({"user":annotUser, "vol":selvol, "spans":parse_file})
         }
     }, savefailure("finding existing entry")
     ).then(savesuccess(function() {
         annotationChanges = 0
-        logMessage("Saved " + ne_annotations.length + " annotations")
+        logMessage("Saved " + annotations.length + " annotations")
     }),
         savefailure("saving new or updating existing entry"))
 }
@@ -212,11 +206,11 @@ function checkVol(tableSelector) {
                     buttons: {
                         "Yes": function() {
                             saveAnnotations()
-                            loadVolumeText(newvol, NESpansObject)
+                            loadVolumeText(newvol, SpansObject)
                             closeDialog(this)
                         },
                         "No": function() {
-                            loadVolumeText(newvol, NESpansObject)
+                            loadVolumeText(newvol, SpansObject)
                             closeDialog(this)
                         },
                         "Cancel": function() {
@@ -227,7 +221,7 @@ function checkVol(tableSelector) {
                     }
                 })
             } 
-            loadVolumeText(newvol, NESpansObject)
+            loadVolumeText(newvol, SpansObject)
         }
     } else {
         logMessage("Please select a non-default Annotator name prior to loading a volume")
@@ -287,10 +281,7 @@ function init() {
     Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx", "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
     VolTextObject = Parse.Object.extend("VolumeText");
-    VolSpansObject = Parse.Object.extend("VolumeSpans");
-    NESpansObject = Parse.Object.extend("NESpans");
-    ToponymObject = Parse.Object.extend("Toponym");
-    //toponymObject = new ToponymObject();
+    SpansObject = Parse.Object.extend("NESpans");
 
     rangy.init();
 

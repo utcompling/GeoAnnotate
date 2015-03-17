@@ -64,8 +64,7 @@ function loadVolumeAnnotations(results) {
     }
 }
 
-// Save annotations in a serialized format. SUCCESSCB is a callback to execute
-// upon successful saving.
+// Save annotations in a serialized format.
 function saveVolumeAnnotations() {
     // Fetch annotations
     var annotations = getAnnotations([annotateClass])

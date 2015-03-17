@@ -38,6 +38,13 @@
         $('#button').click( function () {
             table.row('.selected').remove().draw( false );
         } );
+
+        // Prevent changes in a content-editable div
+        $("#col2text").on("keydown", function(e) {
+            // Allow arrow keys, home, end, pgup, pgdn
+            if (e.keyCode < 33 || e.keyCode > 40)
+                e.preventDefault()
+        })
     } );
     </script>
 
@@ -163,20 +170,10 @@
 <body onload="init()">
         <h1 id="title">Toponym Annotation</h1>
         <form>
-            Load Article Spans From:
-            <select id="selectUserArticle" onchange="nameChangeArticle()">
-              <option>Default</option>
-              <option>Master</option>
-              <option>Grant DeLozier</option>
-              <option>Ben Wing</option>
-              <option>Jason Baldridge</option>
-              <option>Scott Nesbit</option>
-            </select>
-        </form>
-        <form>
             Annotator Name:
             <select id="selectUserAnnotator" onchange="nameChangeAnnotator()">
               <option>Default</option>
+              <option>Master</option>
               <option>Grant DeLozier</option>
               <option>Ben Wing</option>
               <option>Jason Baldridge</option>
@@ -188,7 +185,6 @@
                 <div id="map" class="smallmap"></div>
                 <button type="button" onclick="getFeatures()">Get Features</button>
                 <button type="button" onclick="zoomFeatures()">Zoom to Features</button>
-                <button type="button" onclick="saveFeatures()">Save</button>
             </div>
             <div id="xrightcol3">
                 <table id="vol_table" style="width:100%" onclick="checkVol('#vol_table')">
@@ -204,7 +200,7 @@
             </div>
             <div id="xmiddlecol3">
                 <div id="xinner3">
-                    <div id="col2text">
+                    <div id="col2text" contenteditable="">
 
                      </div>
                      <button type="button" onclick="addPlace()">Add Place (a)</button>      
@@ -218,3 +214,5 @@
 
     </body>
 </html>
+<!-- vi:sw=4
+-->

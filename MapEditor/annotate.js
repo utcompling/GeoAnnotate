@@ -18,12 +18,12 @@ function getSelectionRange() {
 // all. When `exactOK` is given, we basically look to see if we're in the
 // iddle of an annotation (i.e. not pointing to the beginning or end of an
 // annotation), and disallow that.
-function overlapsAnnotation(range, exactOK, annotateClass) {
+function overlapsAnnotation(range, exactOK, classes) {
     function containerIsAnnotationChild(container, offset) {
         // If we're not contained in a text-node child of an annotation node,
         // return false.
         if (container.nodeType != 3 || // not a text node
-            container.parentNode.className !== annotateClass)
+            classes.indexOf(container.parentNode.className) <= -1)
             return false
         if (!exactOK)
             return true
@@ -42,22 +42,22 @@ function overlapsAnnotation(range, exactOK, annotateClass) {
 // NOTE: Always check overlapsAnnotation() first.
 // NOTE: Currently, this returns an empty array if we are
 // entirely within a single annotation but not exactly on it.
-function getRangeNodes(range, annotateClasses) {
+function getRangeNodes(range, classes) {
     // If the selection is entirely within a text node that's the child of
     // an annotation, return the annotation, because getNodes() won't find
     // the annotation.
     if (range.startContainer === range.endContainer &&
         range.startContainer.nodeType === 3 && // text node
-        annotateClasses.indexOf(range.startContainer.parentNode.className) > -1)
+        classes.indexOf(range.startContainer.parentNode.className) > -1)
         return [range.startContainer.parentNode]
     // If the selection is exactly on a single annotation, getNodes() doesn't
     // seem to find it, either, which is a bug; check for this case as well.
     if (range.startContainer === range.endContainer &&
         range.startContainer.nodeType === 1 && // element node
-        annotateClasses.indexOf(range.startContainer.className) > -1)
+        classes.indexOf(range.startContainer.className) > -1)
         return [range.startContainer]
     return range.getNodes(false, function(node) {
-      return (annotateClasses.indexOf(node.className) > -1)
+      return (classes.indexOf(node.className) > -1)
     })
 }
 
@@ -73,8 +73,8 @@ function getTextNode() {
 
 // Return an array of annotations as character offsets, where each annotation
 // is an object containing 'start', 'end' and 'node' properties
-function getAnnotations(annotateClass) {
-    var nodes = getRangeNodes(makeRange(document.body), [annotateClass])
+function getAnnotations(classes) {
+    var nodes = getRangeNodes(makeRange(document.body), classes)
     var textNode = getTextNode()
     //debugger;
     var ne_annotations = nodes.map(function(node) {
@@ -88,7 +88,7 @@ function addAnnotation(clazz, applier) {
     //debugger;
     var selectionRange = getSelectionRange()
     if (selectionRange.startOffset != selectionRange.endOffset) {
-        if (overlapsAnnotation(selectionRange, false, clazz))
+        if (overlapsAnnotation(selectionRange, false, [clazz]))
             alert("Selection already contains part of an annotation")
         else {
             var nodes = getRangeNodes(selectionRange, [clazz])
@@ -96,7 +96,7 @@ function addAnnotation(clazz, applier) {
                 alert("Selection already contains an annotation")
             else {
                 applier.applyToSelection()
-                articleChanges += 1
+                annotationChanges += 1
                 console.log("Added a " + clazz)
             }
         }
@@ -142,6 +142,7 @@ function httpGet(theUrl, callback)
 }
 
 function loadVolumeText(vol, spansObject) {
+    removeAnnotations()
     selvol = vol
     var query = new Parse.Query(VolTextObject)
     query.equalTo("vol", vol)

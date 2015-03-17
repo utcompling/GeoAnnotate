@@ -7,12 +7,12 @@ var VolSpansObject;
 
 var selvol = "0";
 var annotateClass = "geoarticle";
-var articleChanges = 0
+var annotationChanges = 0
 
 // Remove any existing annotations and clear the article-changes list
 function removeAnnotations() {
     unapplier.undoToRange(makeRange(document.body))
-    articleChanges = 0
+    annotationChanges = 0
 }
 
 /*
@@ -46,9 +46,8 @@ function saveAnnotationsXML(successcb) {
 // Parse, queried on the user and volume. There should be only one entry for
 // a given user and volume.
 function loadVolumeAnnotations(results) {
-    removeAnnotations()
     var textNode = getTextNode().childNodes[0]
-    var spansSerialized = results[0].get("spans").split(":")
+    var spansSerialized = results[0].get("spans").split("|")
     var spans = spansSerialized.map(function(span) {
         var split_span = span.split("$")
         var class_name = split_span[0]
@@ -69,14 +68,14 @@ function loadVolumeAnnotations(results) {
 // upon successful saving.
 function saveVolumeAnnotations(successcb) {
     // Fetch annotations
-    var annotations = getAnnotations(annotateClass)
+    var annotations = getAnnotations([annotateClass])
     window.alert("Saving This Many Annotations: " + annotations.length)
     // Convert to an array of serialized annotations in the form "START-END".
     var serialAnnotations = annotations.map(function(ann) {
         return ann.node.className + "$" + ann.start + "$" + ann.end
     })
     // Join to a single serialized string
-    var serialString = serialAnnotations.join(":")
+    var serialString = serialAnnotations.join("|")
     // Save to Parse. First look for an existing entry for the user and volume.
     // If found, update it. Else create a new entry.
     var query = new Parse.Query(VolSpansObject)
@@ -99,7 +98,7 @@ function saveVolumeAnnotations(successcb) {
 // article changes.
 function saveAnnotations() {
     function success() {
-        articleChanges = 0
+        annotationChanges = 0
     }
     if (annotUser != "Default") {
         // saveAnnotationsByChangeSet(success)
@@ -122,7 +121,7 @@ function checkVol() {
         var ret = table.$('tr.selected')
         if (ret.length > 0) {
             var newvol = table.$('tr.selected').find('td:first').text()
-            if (articleChanges > 0) {
+            if (annotationChanges > 0) {
                 $("<div>Do you want to save the existing annotations?</div>").dialog({
                     resizable: false,
                     modal: true,
@@ -164,10 +163,11 @@ document.onkeypress = function (e) {
     if (e.keyCode == 114){
         removeAnnotation()
     }
+    e.preventDefault()
 };
 
-function nameChange(){
-    var el = document.getElementById("selectUser");
+function nameChangeAnnotator(){
+    var el = document.getElementById("selectUserAnnotator");
     annotUser = el.options[el.selectedIndex].innerHTML;
 }
 
@@ -177,7 +177,7 @@ function addArticle() {
 
 function removeAnnotation() {
     var selectionRange = getSelectionRange()
-    if (overlapsAnnotation(selectionRange, true, annotateClass))
+    if (overlapsAnnotation(selectionRange, true, [annotateClass]))
         alert("Selection contains part of an annotation")
     else {
         unapplier.undoToSelection()

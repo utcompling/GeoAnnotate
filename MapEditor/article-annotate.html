@@ -23,10 +23,10 @@
     $(document).ready(function() {
         var table = $('#vol_table').DataTable();
 
-        $('#vol_table tbody').on( 'click', 'tr', function () {
-            var el = document.getElementById("selectUser");
+        $('#vol_table tbody').on('click', 'tr', function () {
+            var el = document.getElementById("selectUserAnnotator");
             var usr = el.options[el.selectedIndex].innerHTML;
-            if (usr != "Default"){
+            if (usr != "Default") {
                 if ( $(this).hasClass('selected') ) {
                     $(this).removeClass('selected');
                 }
@@ -38,10 +38,16 @@
         } );
 
      
-        $('#button').click( function () {
-            table.row('.selected').remove().draw( false );
+        $('#button').click(function() {
+            table.row('.selected').remove().draw(false);
         } );
 
+        // Prevent changes in a content-editable div
+        $("#col2text").on("keydown", function(e) {
+            // Allow arrow keys, home, end, pgup, pgdn
+            if (e.keyCode < 33 || e.keyCode > 40)
+                e.preventDefault()
+        })
     } );
     </script>
 
@@ -109,7 +115,7 @@
         <h1 id="title">Article Annotation</h1>
         <form>
             Annotator Name:
-            <select id="selectUser" onchange="nameChange()">
+            <select id="selectUserAnnotator" onchange="nameChangeAnnotator()">
               <option>Default</option>
               <option>Master</option>
               <option>Grant DeLozier</option>
@@ -135,8 +141,7 @@
             </div>
             <div id="xmiddlecol3">
                 <div id="xinner3">
-                    <div id="col2text" onkeyup="keyboardEvent(event)">
-
+                    <div id="col2text" contenteditable="">
                      </div>
                      <button type="button" onclick="addArticle()">Add Article (a)</button>
                      <button type="button" onclick="removeArticle()">Remove Article (r)</button>

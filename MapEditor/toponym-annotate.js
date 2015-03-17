@@ -1,6 +1,6 @@
 "use strict";
 
-var map, annotation;
+var map, annotationLayer;
 
 //var ne_annotations;
 
@@ -17,10 +17,9 @@ var person_unapplier;
 
 var vol_serial_span = "";
 
-var articleChanges = 0
+var annotationChanges = 0
 var place_selection = [];
 var selvol = "0";
-var artUser = "Default";
 var placeClass = "place";
 var personClass = "person";
 
@@ -51,38 +50,67 @@ var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     CLASS_NAME: "OpenLayers.Control.DeleteFeature"
 });
 
-function getFeatures() {
+function getMapFeatures() {
     //var mLayers = map.layers;
-    var annotation_layer = map.getLayersByName("Annotations")
+    // var annLayer = map.getLayersByName("Annotations")
+    var annLayer = annotationLayer
 
     var geoJSON = new OpenLayers.Format.GeoJSON()
 
-    for(var a = 0; a < annotation_layer[0].features.length; a++ ){
-        var layer_geom = annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326")
-        var geoJSONText = geoJSON.write(annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326"));
-        window.alert(geoJSONText)
-    };
-    //window.alert(annotation.features)
+    var jsonfeatsarr = annLayer.features.map(function(feature) {
+        var layer_geom = feature.geometry.transform("EPSG:900913", "EPSG:4326")
+        var geoJSONText = geoJSON.write(layer_geom)
+        return geoJSONText
+    })
+    var jsonfeats = jsonfeatsarr.join("@@")
+    // window.alert(jsonfeats)
+    return jsonfeats
+}
+
+function jsonToMapFeatures(jsonstr) {
+    var geoJSON = new OpenLayers.Format.GeoJSON()
+
+    var jsonfeats = jsonstr.split("@@")
+    // debugger
+    var feats = jsonfeats.map(function(jsonfeat) {
+        var geom = geoJSON.read(jsonfeat, "Geometry")
+        var transformedGeom = geom.transform("EPSG:4326", "EPSG:900913")
+        return new OpenLayers.Feature.Vector(transformedGeom)
+    })
+    return feats
+}
+
+function getSelectionNodes() {
+    var selectionRange = getSelectionRange()
+    return getRangeNodes(selectionRange, [personClass, placeClass])
+}
+
+function getStoredMapFeatures(node) {
+    return $.data(node, "features")
+}
+
+function setStoredMapFeatures(node, feats) {
+    $.data(node, "features", feats)
+}
+
+function addMapFeaturesToSelection() {
+    var jsonfeats = getMapFeatures()
+    var rangenodes = getSelectionNodes()
+    rangenodes.forEach(function(node) {
+        setStoredMapFeatures(node, jsonfeats)
+    })
 }
 
 function zoomFeatures() {
     window.alert("Zoom Action Needed")
 }
 
-function match_ranges(sometext, re) {
-    var matches = [];
-    while ((m = re.exec(sometext)) !== null) {
-      matches.push([re.lastIndex - m[0].length, re.lastIndex - 1]);
-    }
-    return matches;
-};
-
 function addPlace() {
-    addAnnotation("place", place_applier)
+    addAnnotation(placeClass, place_applier)
 }
 
 function addPerson() {
-    addAnnotation("person", person_applier)
+    addAnnotation(personClass, person_applier)
 }
 
 function utf8_to_b64(str) {
@@ -93,16 +121,15 @@ function utf8_to_b64(str) {
 // upon successful saving.
 function saveVolumeAnnotations(successcb) {
     // Fetch annotations
-    var place_annotations = getAnnotations("place")
-    var person_annotations = getAnnotations("person")
-    var ne_annotations = person_annotations.concat(place_annotations)
+    var ne_annotations = getAnnotations([placeClass, personClass])
     window.alert("Saving This Many Annotations: " + ne_annotations.length)
-    // Convert to an array of serialized annotations in the form "START-END".
+    // Convert to an array of serialized annotations in the form "CLASS$START$END".
     var serialAnnotations = ne_annotations.map(function(ann) {
-        return ann.node.className + "$" + ann.start + "$" + ann.end
+        var jsonmapfeats = getStoredMapFeatures(ann.node) || ""
+        return ann.node.className + "$" + ann.start + "$" + ann.end + "$" + jsonmapfeats
     })
     // Join to a single serialized string
-    var serialString = serialAnnotations.join(":")
+    var serialString = serialAnnotations.join("|")
     var base64 = utf8_to_b64(serialString);
     var parse_file = new Parse.File((annotUser + "-" + selvol + +".txt"), { base64: base64 });
     // Save to Parse. First look for an existing entry for the user and volume.
@@ -127,7 +154,7 @@ function saveVolumeAnnotations(successcb) {
 // article changes.
 function saveAnnotations() {
     function success() {
-        articleChanges = 0
+        annotationChanges = 0
     }
     if (annotUser != "Default") {
         saveVolumeAnnotations(success)
@@ -137,29 +164,33 @@ function saveAnnotations() {
 }
 
 // Load volume annotations
-function loadVolumeAnnotations(results){
-    removeAnnotations()
+function loadVolumeAnnotations(results) {
     var textNode = getTextNode().childNodes[0]
     httpGet(results[0].get("spans").url(), function(spansText) {
-        var spansSerialized = spansText.split(":")
+        var spansSerialized = spansText.split("|")
         var spans = spansSerialized.map(function(span) {
-            var split_span = span.split("$")
-            var class_name = split_span[0]
-            var start = split_span[1]
-            var end = split_span[2]
-            return {start: start, end: end, class_name: class_name}
+            var splitSpan = span.split("$")
+            var className = splitSpan[0]
+            var start = splitSpan[1]
+            var end = splitSpan[2]
+            var jsonmapfeats = splitSpan[3]
+            return {start: start, end: end, className: className, jsonmapfeats: jsonmapfeats}
         })
         spans.sort(function(a, b) { return b.start - a.start })
         for (var i = 0; i < spans.length; i++) {
             var span = spans[i]
             var range = rangy.createRange()
             range.setStartAndEnd(textNode, span.start, span.end)
-            if (span.class_name == "place"){
+            if (span.className == placeClass) {
                 place_applier.applyToRange(range)
             }
-            if (span.class_name == "person"){
+            if (span.className == personClass) {
                 person_applier.applyToRange(range)
             }
+            getRangeNodes(range, [personClass, placeClass]).forEach(function(node) {
+                if (span.jsonmapfeats)
+                    setStoredMapFeatures(node, span.jsonmapfeats)
+            })
         }
     })
 }
@@ -174,7 +205,7 @@ function checkVol(tableSelector) {
         var ret = table.$('tr.selected')
         if (ret.length > 0) {
             var newvol = table.$('tr.selected').find('td:first').text()
-            if (articleChanges > 0) {
+            if (annotationChanges > 0) {
                 $("<div>Do you want to save the existing annotations?</div>").dialog({
                     resizable: false,
                     modal: true,
@@ -203,40 +234,6 @@ function checkVol(tableSelector) {
     }
 }
 
-function getArtTableRows(vol){
-    //There is a potential consistency problem if vol_serial_spans is changed in the period of time
-    //that the volume table is originally loaded and the article table is loaded.
-    //In the future we probably want to requery the spans before loading to check for updates
-    vol_serial_spans
-}
-
-function getVolSpanTableRows(table){
-    var query = new Parse.Query(VolSpansObject)
-    query.exists("vol")
-    query.equalTo("user", artUser)
-    query.find().then(function(results) {
-        //console.log("Successfully " + results[0].get["text"))
-        //$("#col2text").html(results[0].get("text"))
-        for (var i = 0; i < results.length; i++) {
-            var vol = results[i].get("vol")
-            vol_serial_span = results[i].get("spans")
-            var num_arts = vol_serial_span.split(':').length
-            table.row.add([vol, num_arts]).draw();
-        }
-    })
-}
-
-function nameChangeArticle() {
-    var el = document.getElementById("selectUserArticle");
-    artUser = el.options[el.selectedIndex].innerHTML;
-    var table = $('#vol_table').DataTable()
-    if (artUser != "Default"){
-        // var rows = getVolSpanTableRows(table);
-    }else{
-        window.alert("Please select a non default user for Article Pool");
-    }
-}
-
 function nameChangeAnnotator() {
     var el = document.getElementById("selectUserAnnotator");
     annotUser = el.options[el.selectedIndex].innerHTML;
@@ -245,7 +242,7 @@ function nameChangeAnnotator() {
 function removeAnnotations() {
     place_unapplier.undoToRange(makeRange(document.body))
     person_unapplier.undoToRange(makeRange(document.body))
-    articleChanges = 0
+    annotationChanges = 0
 }
 
 document.onkeypress = function (e) {
@@ -270,33 +267,34 @@ document.onkeypress = function (e) {
 
 function removeAnnotation() {
     var selectionRange = getSelectionRange()
-    if (overlapsAnnotation(selectionRange, true, "place") || overlapsAnnotation(selectionRange, true, "person"))
+    if (overlapsAnnotation(selectionRange, true, [placeClass, personClass]))
         alert("Selection contains part of an annotation")
     else {
         place_unapplier.undoToSelection()
         person_unapplier.undoToSelection()
     }
 }
-
-function spanClick(element){
-    //window.alert("Clicked inside article");
-    var range = rangy.createRange();
-    range.selectNodeContents(element);
-    var sel = rangy.getSelection();
-    sel.setSingleRange(range);
+function spanClick(element) {
+    //window.alert("Clicked inside article")
+    var range = rangy.createRange()
+    range.selectNodeContents(element)
+    var sel = rangy.getSelection()
+    sel.setSingleRange(range)
+    var jsonfeats = getStoredMapFeatures(element)
+    // alert("GeoJSON: " + jsonfeats)
+    annotationLayer.destroyFeatures()
+    if (jsonfeats)
+        annotationLayer.addFeatures(jsonToMapFeatures(jsonfeats))
 }
 
-function saveFeatures() {
-    var annotation_layer = map.getLayersByName("Annotations")
-
-    /*
-    for(var a = 0; a < annotation_layer[0].features.length; a++ ){
-        var layer_geom = annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326")
-        var geoJSONText = geoJSON.write(annotation_layer[0].features[a].geometry.transform("EPSG:900913", "EPSG:4326"));
-        toponymObject.save({"GEOJSON": layer_geom})
-        window.alert(geoJSONText)
-    };*/
-
+function annotationFeatureChanged(event) {
+    addMapFeaturesToSelection()
+    // var bounds = event.feature.geometry.getBounds();
+    // var answer = "bottom: " + bounds.bottom + "\n";
+    // answer += "left: " + bounds.left + "\n";
+    // answer += "right: " + bounds.right + "\n";
+    // answer += "top: " + bounds.top + "\n";
+    // alert("Feature modified: " + answer);
 }
 
 function init() {
@@ -353,7 +351,7 @@ function init() {
 
     var saveStrategy = new OpenLayers.Strategy.Save();
     
-    annotation = new OpenLayers.Layer.Vector("Annotations", {
+    annotationLayer = new OpenLayers.Layer.Vector("Annotations", {
         strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
         projection: new OpenLayers.Projection("EPSG:4326"),
         protocol : new OpenLayers.Protocol.HTTP({
@@ -362,7 +360,13 @@ function init() {
             })
     })
    
-    map.addLayers([gphy, annotation]);
+    map.addLayers([gphy, annotationLayer]);
+
+    annotationLayer.events.on({
+        featureadded: annotationFeatureChanged,
+        featuremodified: annotationFeatureChanged,
+        featureremoved: annotationFeatureChanged
+    })
 
     var panel = new OpenLayers.Control.Panel({
         displayClass: 'customEditingToolbar',
@@ -370,7 +374,7 @@ function init() {
     });
     
     var draw = new OpenLayers.Control.DrawFeature(
-        annotation, OpenLayers.Handler.Polygon,
+        annotationLayer, OpenLayers.Handler.Polygon,
         {
             title: "Draw Feature",
             displayClass: "olControlDrawFeaturePolygon",
@@ -378,12 +382,12 @@ function init() {
         }
     );
     
-    var edit = new OpenLayers.Control.ModifyFeature(annotation, {
+    var edit = new OpenLayers.Control.ModifyFeature(annotationLayer, {
         title: "Modify Feature",
         displayClass: "olControlModifyFeature"
     });
 
-    var del = new DeleteFeature(annotation, {title: "Delete Feature"});
+    var del = new DeleteFeature(annotationLayer, {title: "Delete Feature"});
    
     var save = new OpenLayers.Control.Button({
         title: "Save Changes",

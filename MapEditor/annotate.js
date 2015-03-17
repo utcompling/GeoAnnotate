@@ -89,11 +89,11 @@ function addAnnotation(clazz, applier) {
     var selectionRange = getSelectionRange()
     if (selectionRange.startOffset != selectionRange.endOffset) {
         if (overlapsAnnotation(selectionRange, false, [clazz]))
-            alert("Selection already contains part of an annotation")
+            logMessage("Selection already contains part of an annotation")
         else {
             var nodes = getRangeNodes(selectionRange, [clazz])
             if (nodes.length > 0)
-                alert("Selection already contains an annotation")
+                logMessage("Selection already contains an annotation")
             else {
                 applier.applyToSelection()
                 annotationChanges += 1
@@ -169,6 +169,7 @@ function loadVolumeText(vol, spansObject) {
 function getVolTableRows(table){
     var query = new Parse.Query(VolTextObject)
     query.exists("vol")
+    query.limit(1000)
     query.find().then(function(results) {
         //console.log("Successfully " + results[0].get["text"))
         //$("#col2text").html(results[0].get("text"))

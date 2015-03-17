@@ -9,11 +9,11 @@ var VolSpansObject;
 var NESpansObject;
 var ToponymObject;
 
-var place_applier;
-var place_unapplier;
+var placeApplier;
+var placeUnapplier;
 
-var person_applier;
-var person_unapplier;
+var personApplier;
+var personUnapplier;
 
 var vol_serial_span = "";
 
@@ -22,9 +22,7 @@ var place_selection = [];
 var selvol = "0";
 var placeClass = "place";
 var personClass = "person";
-var annotationClassesAndAppliers = [
-    {clazz: placeClass, applier: place_applier, unapplier: place_unapplier},
-    {clazz: personClass, applier: person_applier, unapplier: person_unapplier}]
+var annotationClassesAndAppliers;
 var annotationClasses = [placeClass, personClass]
 
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
@@ -109,12 +107,16 @@ function zoomFeatures() {
     window.alert("Zoom Action Needed")
 }
 
+function logMessage(mess) {
+    $("#log").html(mess)
+}
+
 function addPlace() {
-    addAnnotation(placeClass, place_applier)
+    addAnnotation(placeClass, placeApplier)
 }
 
 function addPerson() {
-    addAnnotation(personClass, person_applier)
+    addAnnotation(personClass, personApplier)
 }
 
 function utf8_to_b64(str) {
@@ -123,10 +125,9 @@ function utf8_to_b64(str) {
 
 // Save annotations in a serialized format. SUCCESSCB is a callback to execute
 // upon successful saving.
-function saveVolumeAnnotations(successcb) {
+function saveVolumeAnnotations() {
     // Fetch annotations
     var ne_annotations = getAnnotations(annotationClasses)
-    window.alert("Saving This Many Annotations: " + ne_annotations.length)
     // Convert to an array of serialized annotations in the form "CLASS$START$END".
     var serialAnnotations = ne_annotations.map(function(ann) {
         var jsonmapfeats = getStoredMapFeatures(ann.node) || ""
@@ -150,20 +151,20 @@ function saveVolumeAnnotations(successcb) {
             return neSpansObject.save({"user":annotUser, "vol":selvol, "spans":parse_file})
         }
     }, savefailure("finding existing entry")
-    ).then(savesuccess(successcb),
+    ).then(savesuccess(function() {
+        annotationChanges = 0
+        logMessage("Saved " + ne_annotations.length + " annotations")
+    }),
         savefailure("saving new or updating existing entry"))
 }
 
 // Called from HTML. Save annotations. If saved successfully, reset list of
 // article changes.
 function saveAnnotations() {
-    function success() {
-        annotationChanges = 0
-    }
     if (annotUser != "Default") {
-        saveVolumeAnnotations(success)
+        saveVolumeAnnotations()
     } else {
-        window.alert("Please select a non-default Annotator Name prior prior to saving")
+        logMessage("Please select a non-default Annotator Name prior prior to saving")
     }
 }
 
@@ -185,12 +186,11 @@ function loadVolumeAnnotations(results) {
             var span = spans[i]
             var range = rangy.createRange()
             range.setStartAndEnd(textNode, span.start, span.end)
-            if (span.className == placeClass) {
-                place_applier.applyToRange(range)
-            }
-            if (span.className == personClass) {
-                person_applier.applyToRange(range)
-            }
+            annotationClassesAndAppliers.forEach(function(ca) {
+                if (span.className == ca.clazz) {
+                    ca.applier.applyToRange(range)
+                }
+            })
             getRangeNodes(range, annotationClasses).forEach(function(node) {
                 if (span.jsonmapfeats)
                     setStoredMapFeatures(node, span.jsonmapfeats)
@@ -234,7 +234,7 @@ function checkVol(tableSelector) {
             loadVolumeText(newvol, NESpansObject)
         }
     } else {
-        window.alert("Please select a non-default Annotator name prior to loading a volume")
+        logMessage("Please select a non-default Annotator name prior to loading a volume")
     }
 }
 
@@ -245,38 +245,18 @@ function nameChangeAnnotator() {
 
 function removeAnnotations() {
     annotationLayer.destroyFeatures()
-    place_unapplier.undoToRange(makeRange(document.body))
-    person_unapplier.undoToRange(makeRange(document.body))
+    placeUnapplier.undoToRange(makeRange(document.body))
+    personUnapplier.undoToRange(makeRange(document.body))
     annotationChanges = 0
 }
-
-document.onkeypress = function (e) {
-    e = e || window.event;
-    //check of 'a' was pressed
-    if (e.keyCode == 97){
-        //window.alert(e.keyCode)
-        var sel = rangy.getSelection();
-        addPlace()
-    }
-    //check of 'e' was pressed
-    if (e.keyCode == 101){
-        //window.alert(e.keyCode)
-        var sel = rangy.getSelection();
-        addPerson()
-    }
-    //check if 'r' was pressed
-    if (e.keyCode == 114){
-        removeAnnotation()
-    }
-};
 
 function removeAnnotation() {
     var selectionRange = getSelectionRange()
     if (overlapsAnnotation(selectionRange, true, annotationClasses))
-        alert("Selection contains part of an annotation")
+        logMessage("Selection contains part of an annotation")
     else {
-        place_unapplier.undoToSelection()
-        person_unapplier.undoToSelection()
+        placeUnapplier.undoToSelection()
+        personUnapplier.undoToSelection()
     }
 }
 function spanClick(element) {
@@ -321,23 +301,28 @@ function init() {
     var table = $('#vol_table').DataTable()
     var rows = getVolTableRows(table)
 
-    place_applier = rangy.createClassApplier(placeClass, {
+    placeApplier = rangy.createClassApplier(placeClass, {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: false
     });
-    place_unapplier = rangy.createClassApplier(placeClass, {
+    placeUnapplier = rangy.createClassApplier(placeClass, {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: true
     });
 
-    person_applier = rangy.createClassApplier(personClass, {
+    personApplier = rangy.createClassApplier(personClass, {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: false
     });
-    person_unapplier = rangy.createClassApplier(personClass, {
+    personUnapplier = rangy.createClassApplier(personClass, {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: true
     });
+
+    annotationClassesAndAppliers = [
+        {clazz: placeClass, applier: placeApplier, unapplier: placeUnapplier},
+        {clazz: personClass, applier: personApplier, unapplier: personUnapplier}
+    ]
 
     map = new OpenLayers.Map('map', {
         projection: new OpenLayers.Projection("EPSG:900913"),
@@ -401,7 +386,7 @@ function init() {
                 edit.selectControl.unselectAll();
             }
             saveStrategy.save();
-            window.alert("Done Saving")
+            logMessage("Done Saving")
         },
         displayClass: "olControlSaveFeatures"
     });

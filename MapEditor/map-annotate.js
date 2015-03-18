@@ -199,7 +199,10 @@ function saveAnnotations() {
 
 // Load volume annotations
 function loadVolumeAnnotations(results) {
-    var textNode = getTextNode().childNodes[0]
+    var textDivNode = getTextNode()
+    textDivNode.normalize()
+    alert(textDivNode.childNodes.length)
+    var textNode = textDivNode.childNodes[0]
     httpGet(results[0].get("spans").url(), function(spansText) {
         var spansSerialized = spansText.split("|")
         var spans = spansSerialized.map(function(span) {
@@ -213,17 +216,22 @@ function loadVolumeAnnotations(results) {
         spans.sort(function(a, b) { return b.start - a.start })
         for (var i = 0; i < spans.length; i++) {
             var span = spans[i]
-            var range = rangy.createRange()
-            range.setStartAndEnd(textNode, span.start, span.end)
-            annotationClassesAndAppliers.forEach(function(ca) {
-                if (span.className == ca.clazz) {
-                    ca.applier.applyToRange(range)
-                }
-            })
-            getRangeNodes(range, annotationClasses).forEach(function(node) {
-                if (span.jsonmapfeats)
-                    setStoredMapFeatures(node, span.jsonmapfeats)
-            })
+            if (span.start > textNode.length || span.end > textNode.length) {
+                console.log("Skipped span [" + span.start + "," +
+                    span.end + "] because > " + textNode.length)
+            } else {
+                var range = rangy.createRange()
+                range.setStartAndEnd(textNode, span.start, span.end)
+                annotationClassesAndAppliers.forEach(function(ca) {
+                    if (span.className == ca.clazz) {
+                        ca.applier.applyToRange(range)
+                    }
+                })
+                getRangeNodes(range, annotationClasses).forEach(function(node) {
+                    if (span.jsonmapfeats)
+                        setStoredMapFeatures(node, span.jsonmapfeats)
+                })
+            }
         }
     })
 }

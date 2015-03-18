@@ -1,7 +1,8 @@
 "use strict"
 
-var VolTextObject;
-var map, annotationLayer;
+var VolTextObject
+var map, annotationLayer
+var programmaticMapChange = false
 
 var annotationChanges = 0
 var selvol = "0"
@@ -10,6 +11,8 @@ var keyCodeActions
 
 var recentLocations = []
 var recentLocationsMaxLength = 10
+
+var lastClickedElement
 
 $(document).ready(function() {
     // This handles selection in dataTable
@@ -48,6 +51,13 @@ $(document).ready(function() {
 function getSelectionNodes() {
     var selectionRange = getSelectionRange()
     return getRangeNodes(selectionRange, annotationClasses)
+}
+
+function setSelectionToNode(node) {
+    var range = rangy.createRange()
+    range.selectNodeContents(node)
+    var sel = rangy.getSelection()
+    sel.setSingleRange(range)
 }
 
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
@@ -115,27 +125,45 @@ function setStoredMapFeatures(node, feats) {
     $.data(node, "features", feats)
 }
 
-function addMapFeaturesToSelection() {
-    var jsonfeats = getMapFeatures()
+// Store the specified GeoJSON map features in the ranges associated with the selection.
+// Return the range nodes in the selection.
+function addMapFeaturesToSelection(jsonfeats) {
     var rangenodes = getSelectionNodes()
+    console.log(rangenodes)
     rangenodes.forEach(function(node) {
         setStoredMapFeatures(node, jsonfeats)
     })
-    if (rangenodes.length > 0)
-        addToRecentLocations(rangenodes[0].innerHTML.substring(0, 20), jsonfeats)
+    return rangenodes
+}
+
+function doProgrammaticMapChange(cb) {
+    try {
+        programmaticMapChange = true
+        cb()
+    } finally {
+        programmaticMapChange = false
+    }
+}
+
+function destroyMapFeatures() {
+    doProgrammaticMapChange(function() { annotationLayer.destroyFeatures() })
+}
+
+function addMapFeatures(feats) {
+    doProgrammaticMapChange(function() { annotationLayer.addFeatures(feats) })
 }
 
 function displayMapFeatures(jsonfeats) {
-    annotationLayer.destroyFeatures()
+    destroyMapFeatures()
     if (jsonfeats)
-        annotationLayer.addFeatures(jsonToMapFeatures(jsonfeats))
+        addMapFeatures(jsonToMapFeatures(jsonfeats))
 }
 
 function populateRecentLocations() {
     var htmlarr = []
     for (var i = recentLocations.length - 1; i >= 0; i--) {
         var recentLoc = recentLocations[i]
-        var html = '<li onclick="locClicked(event)" data-jsonfeats="' +
+        var html = '<li onclick="locClick(event)" data-jsonfeats="' +
                      encodeURI(recentLoc.jsonfeats) + '">' +
                      recentLoc.html + '</li>'
         console.log(html)
@@ -144,17 +172,29 @@ function populateRecentLocations() {
     $('#recentlocs').html(htmlarr.join("\n"))
 }
 
+/* Add an element to the recentLocations list with the specified HTML and
+ * GeoJSON features. */
 function addToRecentLocations(html, jsonfeats) {
-    if (recentLocations.length >= recentLocationsMaxLength)
-        recentLocations = recentLocations.slice(1)
-    recentLocations.push({html: html, jsonfeats: jsonfeats})
+    // If the HTML text isn't in the list, add an element to the end.
+    // Else replace the current element.
+    var curIndex = recentLocations.map(function(obj) { return obj.html }).indexOf(html)
+    if (curIndex === -1) {
+        if (recentLocations.length >= recentLocationsMaxLength)
+            recentLocations = recentLocations.slice(1)
+        recentLocations.push({html: html, jsonfeats: jsonfeats})
+    } else {
+        recentLocations[curIndex] = {html: html, jsonfeats: jsonfeats}
+    }
     populateRecentLocations()
 }
 
-function locClicked(e) {
+function locClick(e) {
     var jsonfeats = unescape($(e.target).attr('data-jsonfeats'))
-    alert(jsonfeats)
+    console.log(jsonfeats)
     displayMapFeatures(jsonfeats)
+    if (lastClickedElement)
+        setSelectionToNode(lastClickedElement)
+    addMapFeaturesToSelection(jsonfeats)
 }
 
 function zoomFeatures() {
@@ -289,7 +329,7 @@ function nameChangeAnnotator() {
 }
 
 function removeAnnotations() {
-    annotationLayer.destroyFeatures()
+    destroyMapFeatures()
     annotationClassesAndAppliers.forEach(function(ca) {
         ca.unapplier.undoToRange(makeRange(document.body))
     })
@@ -309,17 +349,22 @@ function removeAnnotation() {
 
 function spanClick(element) {
     //window.alert("Clicked inside article")
-    var range = rangy.createRange()
-    range.selectNodeContents(element)
-    var sel = rangy.getSelection()
-    sel.setSingleRange(range)
+    setSelectionToNode(element)
+    lastClickedElement = element
     var jsonfeats = getStoredMapFeatures(element)
     // alert("GeoJSON: " + jsonfeats)
     displayMapFeatures(jsonfeats)
 }
 
 function annotationFeatureChanged(event) {
-    addMapFeaturesToSelection()
+    if (!programmaticMapChange) {
+        var jsonfeats = getMapFeatures()
+        var rangenodes = addMapFeaturesToSelection(jsonfeats)
+        if (rangenodes.length > 0) {
+            var text = rangenodes[0].innerHTML.substring(0, 20)
+            addToRecentLocations(text, jsonfeats)
+        }
+    }
     // var bounds = event.feature.geometry.getBounds();
     // var answer = "bottom: " + bounds.bottom + "\n";
     // answer += "left: " + bounds.left + "\n";

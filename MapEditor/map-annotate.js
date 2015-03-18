@@ -9,7 +9,7 @@ var annotationClassesAndAppliers
 var keyCodeActions
 
 var recentLocations = []
-var recentLocationsMaxLength = 5
+var recentLocationsMaxLength = 10
 
 $(document).ready(function() {
     // This handles selection in dataTable
@@ -44,6 +44,11 @@ $(document).ready(function() {
         })
     })
 } );
+
+function getSelectionNodes() {
+    var selectionRange = getSelectionRange()
+    return getRangeNodes(selectionRange, annotationClasses)
+}
 
 var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     initialize: function(layer, options) {
@@ -102,11 +107,6 @@ function jsonToMapFeatures(jsonstr) {
     return feats
 }
 
-function getSelectionNodes() {
-    var selectionRange = getSelectionRange()
-    return getRangeNodes(selectionRange, annotationClasses)
-}
-
 function getStoredMapFeatures(node) {
     return $.data(node, "features")
 }
@@ -125,8 +125,10 @@ function addMapFeaturesToSelection() {
         addToRecentLocations(rangenodes[0].innerHTML.substring(0, 20), jsonfeats)
 }
 
-function zoomFeatures() {
-    window.alert("Zoom Action Needed")
+function displayMapFeatures(jsonfeats) {
+    annotationLayer.destroyFeatures()
+    if (jsonfeats)
+        annotationLayer.addFeatures(jsonToMapFeatures(jsonfeats))
 }
 
 function populateRecentLocations() {
@@ -144,13 +146,19 @@ function populateRecentLocations() {
 
 function addToRecentLocations(html, jsonfeats) {
     if (recentLocations.length >= recentLocationsMaxLength)
-        recentLocations.slice(1)
+        recentLocations = recentLocations.slice(1)
     recentLocations.push({html: html, jsonfeats: jsonfeats})
     populateRecentLocations()
 }
 
 function locClicked(e) {
-    alert($(e.target).attr('data-jsonfeats'))
+    var jsonfeats = unescape($(e.target).attr('data-jsonfeats'))
+    alert(jsonfeats)
+    displayMapFeatures(jsonfeats)
+}
+
+function zoomFeatures() {
+    window.alert("Zoom Action Needed")
 }
 
 // Save annotations in a serialized format.
@@ -307,9 +315,7 @@ function spanClick(element) {
     sel.setSingleRange(range)
     var jsonfeats = getStoredMapFeatures(element)
     // alert("GeoJSON: " + jsonfeats)
-    annotationLayer.destroyFeatures()
-    if (jsonfeats)
-        annotationLayer.addFeatures(jsonToMapFeatures(jsonfeats))
+    displayMapFeatures(jsonfeats)
 }
 
 function annotationFeatureChanged(event) {
@@ -320,6 +326,21 @@ function annotationFeatureChanged(event) {
     // answer += "right: " + bounds.right + "\n";
     // answer += "top: " + bounds.top + "\n";
     // alert("Feature modified: " + answer);
+}
+
+function annotationFeatureAdded(event) {
+    console.log("annotationFeatureAdded " + event)
+    annotationFeatureChanged(event)
+}
+
+function annotationFeatureModified(event) {
+    console.log("annotationFeatureModified " + event)
+    annotationFeatureChanged(event)
+}
+
+function annotationFeatureRemoved(event) {
+    console.log("annotationFeatureRemoved " + event)
+    annotationFeatureChanged(event)
 }
 
 function commonMapInit() {
@@ -364,9 +385,9 @@ function commonMapInit() {
     map.addLayers([gphy, annotationLayer]);
 
     annotationLayer.events.on({
-        featureadded: annotationFeatureChanged,
-        featuremodified: annotationFeatureChanged,
-        featureremoved: annotationFeatureChanged
+        featureadded: annotationFeatureAdded,
+        featuremodified: annotationFeatureModified,
+        featureremoved: annotationFeatureRemoved
     })
 
     var panel = new OpenLayers.Control.Panel({

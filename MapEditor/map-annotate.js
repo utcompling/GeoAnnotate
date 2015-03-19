@@ -204,9 +204,11 @@ function locClick(e) {
 }
 
 function zoomFeatures() {
-    var bounds = annotationLayer.getDataExtent().transform("EPSG:4326", "EPSG:900913")
-    //console.log(bounds)
+    var bounds = annotationLayer.getDataExtent()
+    //var bounds = annotationLayer.getDataExtent().transform("EPSG:4326", "EPSG:900913")
+    console.log(bounds)
     map.zoomToExtent(bounds)
+    //polyboundRefresh.refresh();
 }
 
 // Save annotations in a serialized format.
@@ -424,23 +426,20 @@ function commonMapInit() {
     );
 
     var saveStrategy = new OpenLayers.Strategy.Save();
+
+    //polyboundRefresh = new OpenLayers.Strategy.Refresh({force: true});
     
     annotationLayer = new OpenLayers.Layer.Vector("Annotations", {
-        strategies: [new OpenLayers.Strategy.BBOX(), saveStrategy],
-        projection: new OpenLayers.Projection("EPSG:4326"),
-        protocol : new OpenLayers.Protocol.HTTP({
-                url : 'polygons.geojson',
-                format : new OpenLayers.Format.GeoJSON()
-            })
+        projection: new OpenLayers.Projection("EPSG:4326")
     })
    
     map.addLayers([gphy, annotationLayer]);
 
-    annotationLayer.events.on({
+    /*annotationLayer.events.on({
         featureadded: annotationFeatureAdded,
         featuremodified: annotationFeatureModified,
         featureremoved: annotationFeatureRemoved
-    })
+    })*/
 
     var panel = new OpenLayers.Control.Panel({
         displayClass: 'customEditingToolbar',
@@ -463,6 +462,7 @@ function commonMapInit() {
 
     var del = new DeleteFeature(annotationLayer, {title: "Delete Feature"});
    
+
     var save = new OpenLayers.Control.Button({
         title: "Save Changes",
         trigger: function() {

@@ -204,7 +204,9 @@ function locClick(e) {
 }
 
 function zoomFeatures() {
-    window.alert("Zoom Action Needed")
+    var bounds = annotationLayer.getDataExtent().transform("EPSG:4326", "EPSG:900913")
+    //console.log(bounds)
+    map.zoomToExtent(bounds)
 }
 
 // Save annotations in a serialized format.

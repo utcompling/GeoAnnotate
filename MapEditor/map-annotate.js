@@ -163,9 +163,10 @@ function populateRecentLocations() {
     var htmlarr = []
     for (var i = recentLocations.length - 1; i >= 0; i--) {
         var recentLoc = recentLocations[i]
-        var html = '<li onclick="locClick(event)" data-jsonfeats="' +
-                     encodeURI(recentLoc.jsonfeats) + '">' +
-                     recentLoc.html + '</li>'
+        var html = '<tr>' + '<td onclick="locClick(event)" data-jsonfeats="' +
+                     encodeURI(recentLoc.jsonfeats) + '">&#x24b3;</td><td><input value="' +
+                     recentLoc.html + '" onchange="locChange(event)" data-index="' + i +
+                     '"></td><td>Location</td></tr>'
         console.log(html)
         htmlarr.push(html)
     }
@@ -186,6 +187,11 @@ function addToRecentLocations(html, jsonfeats) {
         recentLocations[curIndex] = {html: html, jsonfeats: jsonfeats}
     }
     populateRecentLocations()
+}
+
+function locChange(e) {
+    console.log(e.target.value)
+    recentLocations[$(e.target).attr('data-index')].html = e.target.value
 }
 
 function locClick(e) {
@@ -249,7 +255,6 @@ function saveAnnotations() {
 function loadVolumeAnnotations(results) {
     var textDivNode = getTextNode()
     textDivNode.normalize()
-    alert(textDivNode.childNodes.length)
     var textNode = textDivNode.childNodes[0]
     httpGet(results[0].get("spans").url(), function(spansText) {
         var spansSerialized = spansText.split("|")

@@ -42,7 +42,7 @@
 </head>
     <body onload="init()">
         <div style="width:25%; overflow: hidden; float: left;">
-        <h1 id="title">DocGeo Annotation</h1>
+        <!--<h1 id="title">DocGeo Annotation</h1>-->
         <form>
             Annotator Name:
             <select id="selectUserAnnotator" onchange="nameChangeAnnotator()">
@@ -58,7 +58,7 @@
         <!-- The junk here is needed so that the text is vertically centered, per
              http://stackoverflow.com/questions/2939914/vertically-align-text-in-a-div
         -->
-        <div style="display: table; width: 75%; height: 100px; float: right; overflow: hidden;">
+        <div style="display: table; width: 75%; height: 50px; float: right; overflow: hidden;">
           <div style="display: table-cell; vertical-align: middle;">
             <div id="log"></div>
           </div>
@@ -68,6 +68,19 @@
                 <div id="map" class="smallmap"></div>
                 <button type="button" onclick="getFeatures()">Get Features</button>
                 <button type="button" onclick="zoomFeatures()">Zoom to Features</button>
+                <div id="recentlocsdiv">
+                    <table id="recentlocstable">
+                        <thead>
+                            <tr>
+                                <th>Click</th>
+                                <th>Place</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentlocs">
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <div id="xrightcol3">
                 <table id="vol_table" style="width:100%" onclick="checkVol('#vol_table')">
@@ -83,12 +96,11 @@
             </div>
             <div id="xmiddlecol3">
                 <div id="xinner3">
-                    <div id="col2text" contenteditable="">
-
-                     </div>
                      <button type="button" onclick="addDocGeo()">Add DocGeo (a)</button>      
                      <button type="button" onclick="removeAnnotation()">Remove Annotation (r)</button>
                      <button type="button" onclick="saveAnnotations()">Save Annotations</button>
+                     <div id="col2text" contenteditable="">
+                     </div>
                 </div>
             </div>
         </div>

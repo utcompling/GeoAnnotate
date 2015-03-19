@@ -366,6 +366,7 @@ function spanClick(element) {
 }
 
 function annotationFeatureChanged(event) {
+    console.log("Programmatic Change:" + programmaticMapChange)
     if (!programmaticMapChange) {
         var jsonfeats = getMapFeatures()
         var rangenodes = addMapFeaturesToSelection(jsonfeats)
@@ -435,11 +436,11 @@ function commonMapInit() {
    
     map.addLayers([gphy, annotationLayer]);
 
-    /*annotationLayer.events.on({
-        featureadded: annotationFeatureAdded,
+    annotationLayer.events.on({
+        /*featureadded: annotationFeatureAdded,*/
         featuremodified: annotationFeatureModified,
         featureremoved: annotationFeatureRemoved
-    })*/
+    })
 
     var panel = new OpenLayers.Control.Panel({
         displayClass: 'customEditingToolbar',

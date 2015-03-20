@@ -95,12 +95,16 @@ function getMapFeatures() {
     var geoJSON = new OpenLayers.Format.GeoJSON()
 
     var jsonfeatsarr = annLayer.features.map(function(feature) {
-        var layer_geom = feature.geometry.transform("EPSG:900913", "EPSG:4326")
-        var geoJSONText = geoJSON.write(layer_geom)
+        var layer_geom = feature.geometry
+        var geoJSONText = geoJSON.write(layer_geom.transform("EPSG:900913", "EPSG:4326"))
+        //Any transformation of a vector layer geometry changes the layer projection, So we must transform it back.
+        //Done to prevent polygons disappearing/zooming incorrectly
+        layer_geom.transform("EPSG:4326", "EPSG:900913")
         return geoJSONText
     })
     var jsonfeats = jsonfeatsarr.join("@@")
-    // window.alert(jsonfeats)
+    console.log(jsonfeats)
+    //window.alert("json feats?" + jsonfeats)
     return jsonfeats
 }
 
@@ -108,7 +112,6 @@ function jsonToMapFeatures(jsonstr) {
     var geoJSON = new OpenLayers.Format.GeoJSON()
 
     var jsonfeats = jsonstr.split("@@")
-    // debugger
     var feats = jsonfeats.map(function(jsonfeat) {
         var geom = geoJSON.read(jsonfeat, "Geometry")
         var transformedGeom = geom.transform("EPSG:4326", "EPSG:900913")
@@ -122,7 +125,9 @@ function getStoredMapFeatures(node) {
 }
 
 function setStoredMapFeatures(node, feats) {
+    //$( "span:first" ).text( jQuery.data( node, "features" ).first );
     $.data(node, "features", feats)
+    console.log(feats + 'applied to' + node)
 }
 
 // Store the specified GeoJSON map features in the ranges associated with the selection.
@@ -130,6 +135,7 @@ function setStoredMapFeatures(node, feats) {
 function addMapFeaturesToSelection(jsonfeats) {
     var rangenodes = getSelectionNodes()
     console.log(rangenodes)
+    console.log(jsonfeats)
     rangenodes.forEach(function(node) {
         setStoredMapFeatures(node, jsonfeats)
     })
@@ -206,9 +212,7 @@ function locClick(e) {
 function zoomFeatures() {
     var bounds = annotationLayer.getDataExtent()
     //var bounds = annotationLayer.getDataExtent().transform("EPSG:4326", "EPSG:900913")
-    console.log(bounds)
     map.zoomToExtent(bounds)
-    //polyboundRefresh.refresh();
 }
 
 // Save annotations in a serialized format.
@@ -368,6 +372,7 @@ function spanClick(element) {
 function annotationFeatureChanged(event) {
     console.log("Programmatic Change:" + programmaticMapChange)
     if (!programmaticMapChange) {
+        //This is causing the zoom/rendering bug
         var jsonfeats = getMapFeatures()
         var rangenodes = addMapFeaturesToSelection(jsonfeats)
         if (rangenodes.length > 0) {
@@ -437,7 +442,7 @@ function commonMapInit() {
     map.addLayers([gphy, annotationLayer]);
 
     annotationLayer.events.on({
-        /*featureadded: annotationFeatureAdded,*/
+        featureadded: annotationFeatureAdded,
         featuremodified: annotationFeatureModified,
         featureremoved: annotationFeatureRemoved
     })

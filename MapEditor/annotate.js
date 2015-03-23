@@ -90,7 +90,36 @@ function getTextNode() {
 
 // Return an array of annotations as character offsets, where each annotation
 // is an object containing 'start', 'end' and 'node' properties
-function getAnnotations(classes) {
+function getAnnotationsFast(classes) {
+    var annotations = []
+    function getAnnotationsFast1(node, classes, inclasses, offset) {
+        if (node.nodeType == 3) {
+            if (inclasses) {
+                annotations.push({start: offset, end: offset + node.length,
+                    node: node.parentNode})
+                // console.log("[" + offset + "," + (offset + node.length) + "]")
+            }
+            return offset + node.length
+        }
+        if (node.nodeType == 1) {
+            if (classes.indexOf(node.className) > -1)
+                inclasses = true
+            for (var i = 0; i < node.childNodes.length; i++) {
+                offset = getAnnotationsFast1(node.childNodes[i], classes,
+                    inclasses, offset)
+            }
+            return offset
+        }
+        return offset
+    }
+
+    getAnnotationsFast1(getTextNode(), classes, false, 0)
+    return annotations
+}
+
+// Return an array of annotations as character offsets, where each annotation
+// is an object containing 'start', 'end' and 'node' properties
+function getAnnotationsSlow(classes) {
     var nodes = getRangeNodes(makeRange(document.body), classes)
     var textNode = getTextNode()
     //debugger;
@@ -99,6 +128,10 @@ function getAnnotations(classes) {
         return {start:range.start, end:range.end, node:node}
     })
     return ne_annotations
+}
+
+function getAnnotations(classes) {
+    return getAnnotationsFast(classes)
 }
 
 function addAnnotation(clazz, applier) {

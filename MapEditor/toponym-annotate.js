@@ -22,6 +22,28 @@ function addPerson() {
     addAnnotation(personClass, personApplier)
 }
 
+function applyGeoAll(){
+    var current_geom = getMapFeatures()
+    //get the node of the current selection
+    var textnode = getTextNode()
+    var selectionRange = getSelectionRange(textnode)
+    var nodes = getRangeNodes(selectionRange, ["place"])
+    if (nodes.length == 1){
+        var text = nodes[0].textContent.toLowerCase()
+        var place_nodes = getRangeNodes(makeRange(textnode), ["place"])
+        for (var i = 0; i < place_nodes.length; i++) {
+            var pnode = place_nodes[i]
+            if (pnode.textContent.toLowerCase() == text){
+                setStoredMapFeatures(pnode, current_geom)
+            }
+        }
+        logMessage("Applied Geometry to " + place_nodes.length + " occurences of " + "'" + text + "'")
+    } else {
+        logMessage("Selection does not contain a place")
+    }
+        
+}
+
 function init() {
     commonMapInit()
 

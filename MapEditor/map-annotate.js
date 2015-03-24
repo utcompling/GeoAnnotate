@@ -103,7 +103,7 @@ function getMapFeatures() {
         return geoJSONText
     })
     var jsonfeats = jsonfeatsarr.join("@@")
-    console.log(jsonfeats)
+    //console.log(jsonfeats)
     //window.alert("json feats?" + jsonfeats)
     return jsonfeats
 }
@@ -127,7 +127,7 @@ function getStoredMapFeatures(node) {
 function setStoredMapFeatures(node, feats) {
     //$( "span:first" ).text( jQuery.data( node, "features" ).first );
     $.data(node, "features", feats)
-    console.log(feats + 'applied to' + node)
+    //console.log(feats + 'applied to' + node)
 }
 
 // Store the specified GeoJSON map features in the ranges associated with the selection.
@@ -202,7 +202,7 @@ function locChange(e) {
 
 function locClick(e) {
     var jsonfeats = unescape($(e.target).attr('data-jsonfeats'))
-    console.log(jsonfeats)
+    //console.log(jsonfeats)
     displayMapFeatures(jsonfeats)
     if (lastClickedElement)
         setSelectionToNode(lastClickedElement)

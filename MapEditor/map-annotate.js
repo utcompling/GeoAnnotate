@@ -354,6 +354,7 @@ function removeAnnotation() {
     if (overlapsAnnotation(selectionRange, true, annotationClasses))
         logMessage("Selection contains part of an annotation")
     else {
+        destroyMapFeatures()
         annotationClassesAndAppliers.forEach(function(ca) {
             ca.unapplier.undoToSelection()
         })

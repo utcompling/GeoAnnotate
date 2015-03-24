@@ -13,10 +13,12 @@ var personClass = "person"
 var annotationClasses = [placeClass, personClass]
 
 function addPlace() {
+    destroyMapFeatures()
     addAnnotation(placeClass, placeApplier)
 }
 
 function addPerson() {
+    destroyMapFeatures()
     addAnnotation(personClass, personApplier)
 }
 

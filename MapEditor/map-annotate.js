@@ -103,7 +103,7 @@ function getMapFeatures() {
         return geoJSONText
     })
     var jsonfeats = jsonfeatsarr.join("@@")
-    //console.log(jsonfeats)
+    console.log(jsonfeats)
     //window.alert("json feats?" + jsonfeats)
     return jsonfeats
 }
@@ -124,9 +124,12 @@ function getStoredMapFeatures(node) {
     return $.data(node, "features")
 }
 
-function setStoredMapFeatures(node, feats) {
+function setStoredMapFeatures(node, feats, setattr) {
     //$( "span:first" ).text( jQuery.data( node, "features" ).first );
     $.data(node, "features", feats)
+    if (setattr) {
+        node.setAttribute("geo", "1")
+    }
     //console.log(feats + 'applied to' + node)
 }
 
@@ -137,7 +140,7 @@ function addMapFeaturesToSelection(jsonfeats) {
     console.log(rangenodes)
     console.log(jsonfeats)
     rangenodes.forEach(function(node) {
-        setStoredMapFeatures(node, jsonfeats)
+        setStoredMapFeatures(node, jsonfeats, true)
     })
     return rangenodes
 }
@@ -202,7 +205,7 @@ function locChange(e) {
 
 function locClick(e) {
     var jsonfeats = unescape($(e.target).attr('data-jsonfeats'))
-    //console.log(jsonfeats)
+    console.log(jsonfeats)
     displayMapFeatures(jsonfeats)
     if (lastClickedElement)
         setSelectionToNode(lastClickedElement)
@@ -264,6 +267,7 @@ function loadVolumeAnnotations(results) {
     var textDivNode = getTextNode()
     textDivNode.normalize()
     var textNode = textDivNode.childNodes[0]
+    logMessage("Loading Annotations...")
     httpGet(results[0].get("spans").url(), function(spansText) {
         var spansSerialized = spansText.split("|")
         var spans = spansSerialized.map(function(span) {
@@ -285,15 +289,20 @@ function loadVolumeAnnotations(results) {
                 range.setStartAndEnd(textNode, span.start, span.end)
                 annotationClassesAndAppliers.forEach(function(ca) {
                     if (span.className == ca.clazz) {
-                        ca.applier.applyToRange(range)
+                        if (span.jsonmapfeats && ca.geoapplier){
+                            ca.geoapplier.applyToRange(range)
+                        }else{
+                            ca.applier.applyToRange(range)
+                        }
                     }
                 })
                 getRangeNodes(range, annotationClasses).forEach(function(node) {
                     if (span.jsonmapfeats)
-                        setStoredMapFeatures(node, span.jsonmapfeats)
+                        setStoredMapFeatures(node, span.jsonmapfeats, false)
                 })
             }
         }
+        logMessage("Done Loading")
     })
 }
 
@@ -354,7 +363,6 @@ function removeAnnotation() {
     if (overlapsAnnotation(selectionRange, true, annotationClasses))
         logMessage("Selection contains part of an annotation")
     else {
-        destroyMapFeatures()
         annotationClassesAndAppliers.forEach(function(ca) {
             ca.unapplier.undoToSelection()
         })

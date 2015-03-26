@@ -4,9 +4,12 @@ var SpansObject;
 
 var placeApplier;
 var placeUnapplier;
+var placeApplierGeo;
 
 var personApplier;
 var personUnapplier;
+
+
 
 var placeClass = "place"
 var personClass = "person"
@@ -31,13 +34,15 @@ function applyGeoAll(){
     if (nodes.length == 1){
         var text = nodes[0].textContent.toLowerCase()
         var place_nodes = getRangeNodes(makeRange(textnode), ["place"])
+        var places = 0
         for (var i = 0; i < place_nodes.length; i++) {
             var pnode = place_nodes[i]
             if (pnode.textContent.toLowerCase() == text){
+                places++;
                 setStoredMapFeatures(pnode, current_geom)
             }
         }
-        logMessage("Applied Geometry to " + place_nodes.length + " occurences of " + "'" + text + "'")
+        logMessage("Applied Geometry to " + places + " occurences of " + "'" + text + "'")
     } else {
         logMessage("Selection does not contain a place")
     }
@@ -53,6 +58,11 @@ function init() {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: false
     });
+    placeApplierGeo = rangy.createClassApplier(placeClass, {
+        elementAttributes: {onclick:"spanClick(this)", geo:"1"},
+        normalize: false
+    });
+
     placeUnapplier = rangy.createClassApplier(placeClass, {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: true
@@ -68,7 +78,7 @@ function init() {
     });
 
     annotationClassesAndAppliers = [
-        {clazz: placeClass, applier: placeApplier, unapplier: placeUnapplier},
+        {clazz: placeClass, applier: placeApplier, geoapplier:placeApplierGeo, unapplier: placeUnapplier},
         {clazz: personClass, applier: personApplier, unapplier: personUnapplier}
     ]
 

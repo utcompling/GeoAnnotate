@@ -70,6 +70,8 @@ var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     },
     clickFeature: function(feature) {
         // if feature doesn't have a fid, destroy it
+        if (lastClickedElement)
+            setSelectionToNode(lastClickedElement)
         if(feature.fid == undefined) {
             this.layer.destroyFeatures([feature]);
         } else {
@@ -103,7 +105,6 @@ function getMapFeatures() {
         return geoJSONText
     })
     var jsonfeats = jsonfeatsarr.join("@@")
-    console.log(jsonfeats)
     //window.alert("json feats?" + jsonfeats)
     return jsonfeats
 }
@@ -127,9 +128,15 @@ function getStoredMapFeatures(node) {
 function setStoredMapFeatures(node, feats, setattr) {
     //$( "span:first" ).text( jQuery.data( node, "features" ).first );
     $.data(node, "features", feats)
+
     if (setattr) {
         node.setAttribute("geo", "1")
     }
+
+    if (feats.length == 0) {
+        node.removeAttribute("geo")
+    }
+
     //console.log(feats + 'applied to' + node)
 }
 
@@ -137,8 +144,6 @@ function setStoredMapFeatures(node, feats, setattr) {
 // Return the range nodes in the selection.
 function addMapFeaturesToSelection(jsonfeats) {
     var rangenodes = getSelectionNodes()
-    console.log(rangenodes)
-    console.log(jsonfeats)
     rangenodes.forEach(function(node) {
         setStoredMapFeatures(node, jsonfeats, true)
     })
@@ -381,7 +386,6 @@ function spanClick(element) {
 function annotationFeatureChanged(event) {
     console.log("Programmatic Change:" + programmaticMapChange)
     if (!programmaticMapChange) {
-        //This is causing the zoom/rendering bug
         var jsonfeats = getMapFeatures()
         var rangenodes = addMapFeaturesToSelection(jsonfeats)
         if (rangenodes.length > 0) {

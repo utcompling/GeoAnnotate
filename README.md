@@ -16,7 +16,8 @@
 
 (6) Navigate to where localhost is served on your machine. On my windows machine that was accomplished by `cd C:\inetpub\wwwroot`
 
-(8) Symbolic link the localhost directory and the folder that was unzipped to the C drive. `mklink /d "C:\inetpub\wwwroot\GeoAnnotate-master" "C:\GeoAnnotate-master"`
+(8) Symbolic link the localhost directory and the folder that was unzipped to the C drive. 
+`mklink /d "C:\inetpub\wwwroot\GeoAnnotate-master" "C:\GeoAnnotate-master"`
 
 (9) Open Chrome and type /localhost/GeoAnnotate-master/MapEditor/toponym-annotate.html in the url bar
 

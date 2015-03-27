@@ -91,6 +91,16 @@ position:relative;
     background-repeat: no-repeat;
     background-position: -26px -23px ;                                                                   
 }
+.olControlDrawFeaturePointItemInactive { 
+    background-image: url("openlayers/theme/default/img/draw_point_off.png");
+    background-repeat: no-repeat;
+    background-position: 0px 1px; 
+}
+.olControlDrawFeaturePointItemActive { 
+    background-image: url("openlayers/theme/default/img/draw_point_on.png");
+    background-repeat: no-repeat;
+    background-position: 0px 1px;                                                                   
+}
 .olControlModifyFeatureItemActive { 
     background-image: url(openlayers/theme/default/img/move_feature_on.png);
     background-repeat: no-repeat;

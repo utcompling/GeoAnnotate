@@ -444,12 +444,25 @@ function commonMapInit() {
         "Google Streets"
     );
 
-    var saveStrategy = new OpenLayers.Strategy.Save();
-
     //polyboundRefresh = new OpenLayers.Strategy.Refresh({force: true});
     
+    //var vertexStyle = {
+    //    pointRadius: 10000,
+    //    graphicName: 'cross'
+    //}
+    //var styleMap = new OpenLayers.StyleMap({
+    //    "default": OpenLayers.Feature.Vector.style['default'],
+    //    "vertex": vertexStyle
+    //}, {extendDefault: false})
+    //var styleMap = new OpenLayers.StyleMap(vertexStyle)
+
     annotationLayer = new OpenLayers.Layer.Vector("Annotations", {
-        projection: new OpenLayers.Projection("EPSG:4326")
+        projection: new OpenLayers.Projection("EPSG:4326"),
+        //styleMap: styleMap,
+        style: { 'pointRadius':10, 'graphicName':'cross',
+                 //'fillColor':'#ff0000', 'strokeWidth':100,
+                 //'strokeLineCap':'square'
+               } 
     })
    
     map.addLayers([gphy, annotationLayer]);
@@ -474,6 +487,15 @@ function commonMapInit() {
         }
     );
     
+    var drawpoint = new OpenLayers.Control.DrawFeature(
+        annotationLayer, OpenLayers.Handler.Point,
+        {
+            title: "Draw Point Feature",
+            displayClass: "olControlDrawFeaturePoint",
+            multi: false
+        }
+    );
+    
     var edit = new OpenLayers.Control.ModifyFeature(annotationLayer, {
         title: "Modify Feature",
         displayClass: "olControlModifyFeature"
@@ -482,19 +504,7 @@ function commonMapInit() {
     var del = new DeleteFeature(annotationLayer, {title: "Delete Feature"});
    
 
-    var save = new OpenLayers.Control.Button({
-        title: "Save Changes",
-        trigger: function() {
-            if(edit.feature) {
-                edit.selectControl.unselectAll();
-            }
-            saveStrategy.save();
-            logMessage("Done Saving")
-        },
-        displayClass: "olControlSaveFeatures"
-    });
-
-    panel.addControls([save, del, edit, draw]);
+    panel.addControls([del, edit, draw, drawpoint]);
     map.addControl(panel);
     map.zoomToExtent(extent, true);
 }

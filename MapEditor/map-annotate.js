@@ -460,7 +460,7 @@ function commonMapInit() {
         projection: new OpenLayers.Projection("EPSG:4326"),
         //styleMap: styleMap,
         style: { 'pointRadius':10, 'graphicName':'cross',
-                 //'fillColor':'#ff0000', 'strokeWidth':100,
+                 'fillColor':"#ee9900", 'fillOpacity':0.4, 'strokeOpacity':0.4
                  //'strokeLineCap':'square'
                } 
     })

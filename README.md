@@ -20,7 +20,7 @@
 
 `mklink /d "C:\inetpub\wwwroot\GeoAnnotate-master" "C:\GeoAnnotate-master"`
 
-(9) Open Chrome and type /localhost/GeoAnnotate-master/MapEditor/toponym-annotate.html in the url bar
+(9) Open Chrome and type `/localhost/GeoAnnotate-master/MapEditor/toponym-annotate.html` in the url bar
 
 You should now see the application.
 

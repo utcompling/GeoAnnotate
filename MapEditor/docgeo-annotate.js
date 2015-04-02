@@ -28,7 +28,7 @@ function init() {
     });
 
     docgeoApplier_geo = rangy.createClassApplier(docgeoClass, {
-        elementAttributes: {onclick:"spanClick(this)"}, geo:"1",
+        elementAttributes: {onclick:"spanClick(this)", geo:"1"},
         normalize: false
     });
 

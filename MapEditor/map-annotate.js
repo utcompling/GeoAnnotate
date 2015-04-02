@@ -1,5 +1,7 @@
 "use strict"
 
+var isDocGeo = false
+
 var VolTextObject
 var map, annotationLayer
 var programmaticMapChange = false
@@ -110,6 +112,17 @@ function getMapFeatures() {
     return jsonfeats
 }
 
+// Return the centroid of the first point or polygon on the map, as a
+// string of the form LAT,LONG. If there isn't any point or polygon on the
+// map, return "unknown".
+function getMapCentroid() {
+    if (annotationLayer.features.length == 0)
+        return "unknown"
+    var centroid =
+        annotationLayer.features[0].geometry.getCentroid().transform("EPSG:900913", "EPSG:4326")
+    return centroid.y.toFixed(3) + "," + centroid.x.toFixed(3)
+}
+
 function jsonToMapFeatures(jsonstr) {
     var geoJSON = new OpenLayers.Format.GeoJSON()
 
@@ -192,25 +205,31 @@ function populateRecentLocations() {
         var html = '<tr>' + '<td onclick="locClick(event)" data-jsonfeats="' +
                      encodeURI(recentLoc.jsonfeats) + '">&#x24b3;</td><td><input value="' +
                      recentLoc.html + '" onchange="locChange(event)" data-index="' + i +
-                     '"></td><td>Location</td></tr>'
-        console.log(html)
+                     '"></td><td>' + recentLoc.centroid + '</td></tr>'
         htmlarr.push(html)
     }
     $('#recentlocs').html(htmlarr.join("\n"))
 }
 
-/* Add an element to the recentLocations list with the specified HTML and
- * GeoJSON features. */
-function addToRecentLocations(html, jsonfeats) {
-    // If the HTML text isn't in the list, add an element to the end.
-    // Else replace the current element.
-    var curIndex = recentLocations.map(function(obj) { return obj.html }).indexOf(html)
+/* Add an element to the recentLocations list with the specified HTML,
+ * GeoJSON features, and string describing the centroid. */
+function addToRecentLocations(html, jsonfeats, centroid) {
+    // We want to make sure we don't have duplicate entries. If DocGeo, we
+    // look for something matching the current centroid. Otherwise (for
+    // toponyms), we look for something matching the HTML text, replacing the
+    // current entry if found (we don't do this for DocGeo because the text
+    // will be long and might be changed by the user to something shorter).
+    var curIndex = (isDocGeo ?
+        recentLocations.map(function(obj) { return obj.centroid }).indexOf(centroid) :
+        recentLocations.map(function(obj) { return obj.html }).indexOf(html)
+    )
+    var newobj = {html: html, jsonfeats: jsonfeats, centroid: centroid}
     if (curIndex === -1) {
         if (recentLocations.length >= recentLocationsMaxLength)
             recentLocations = recentLocations.slice(1)
-        recentLocations.push({html: html, jsonfeats: jsonfeats})
-    } else {
-        recentLocations[curIndex] = {html: html, jsonfeats: jsonfeats}
+        recentLocations.push(newobj)
+    } else if (!isDocGeo) {
+        recentLocations[curIndex] = newobj
     }
     populateRecentLocations()
 }
@@ -414,10 +433,11 @@ function annotationFeatureChanged(event) {
     console.log("Programmatic Change:" + programmaticMapChange)
     if (!programmaticMapChange) {
         var jsonfeats = getMapFeatures()
+        var centroid = getMapCentroid()
         var rangenodes = addMapFeaturesToSelection(jsonfeats)
         if (rangenodes.length > 0) {
             var text = rangenodes[0].innerHTML.substring(0, 20)
-            addToRecentLocations(text, jsonfeats)
+            addToRecentLocations(text, jsonfeats, centroid)
         }
     }
     // var bounds = event.feature.geometry.getBounds();

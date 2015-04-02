@@ -34,6 +34,8 @@ function init() {
         {code: 65, action: addDocGeo},
         {code: 82, action: removeAnnotation}
     ]
+
+    isDocGeo = true
 }
 
 // Set 4-space indentation for vi

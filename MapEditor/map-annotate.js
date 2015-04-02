@@ -105,6 +105,7 @@ function getMapFeatures() {
         return geoJSONText
     })
     var jsonfeats = jsonfeatsarr.join("@@")
+    console.log(jsonfeats)
     //window.alert("json feats?" + jsonfeats)
     return jsonfeats
 }
@@ -119,6 +120,17 @@ function jsonToMapFeatures(jsonstr) {
         return new OpenLayers.Feature.Vector(transformedGeom)
     })
     return feats
+}
+
+function latLongToJson(latlong) {
+    var latlongs = latlong.split(";")
+    var jsonfeatsarr = latlongs.map(function(ll) {
+        var split_latlong = ll.split(",")
+        return ('{"type":"Point","coordinates":[' + split_latlong[1] + ',' +
+            split_latlong[0] + ']}')
+    })
+    var jsonfeats = jsonfeatsarr.join("@@")
+    return jsonfeats
 }
 
 function getStoredMapFeatures(node) {
@@ -210,11 +222,26 @@ function locChange(e) {
 
 function locClick(e) {
     var jsonfeats = unescape($(e.target).attr('data-jsonfeats'))
+    snapToJsonLocation(jsonfeats)
+}
+
+function snapToJsonLocation(jsonfeats) {
     console.log(jsonfeats)
     displayMapFeatures(jsonfeats)
-    if (lastClickedElement)
+    if (lastClickedElement) {
         setSelectionToNode(lastClickedElement)
-    addMapFeaturesToSelection(jsonfeats)
+        addMapFeaturesToSelection(jsonfeats)
+    }
+}
+
+function setLatLong() {
+    var existing = getMapFeatures()
+    var latlong = $("#latlong").val()
+    console.log(latlong)
+    var newjsonfeats = latLongToJson(latlong)
+    var jsonfeats = existing ? existing + "@@" + newjsonfeats : newjsonfeats
+    console.log(jsonfeats)
+    snapToJsonLocation(jsonfeats)
 }
 
 function zoomFeatures() {

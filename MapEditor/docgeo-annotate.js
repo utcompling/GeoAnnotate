@@ -10,7 +10,7 @@ var docgeoClass = "docgeo"
 var annotationClasses = [docgeoClass]
 
 function addDocGeo() {
-    addAnnotation(docgeoClass, docgeoApplier)
+    addFeature(docgeoClass, docgeoApplier)
 }
 
 function init() {

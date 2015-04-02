@@ -147,7 +147,7 @@ function addAnnotation(clazz, applier) {
             else {
                 applier.applyToSelection()
                 annotationChanges += 1
-                console.log("Added a " + clazz)
+                logMessage("Added a " + clazz)
             }
         }
     }

@@ -136,14 +136,18 @@ function jsonToMapFeatures(jsonstr) {
 }
 
 function latLongToJson(latlong) {
-    var latlongs = latlong.split(";")
-    var jsonfeatsarr = latlongs.map(function(ll) {
-        var split_latlong = ll.split(",")
-        return ('{"type":"Point","coordinates":[' + split_latlong[1] + ',' +
-            split_latlong[0] + ']}')
-    })
-    var jsonfeats = jsonfeatsarr.join("@@")
-    return jsonfeats
+    if (!latlong) {
+        logMessage("Empty lat/long value")
+        return undefined
+    }
+    var split_latlong = latlong.split(",")
+    var lat = split_latlong[1]
+    var lon = split_latlong[0]
+    if (isNaN(lat) || isNaN(lon)) {
+        logMessage("Invalid lat/long value: " + latlong)
+        return undefined
+    }
+    return ('{"type":"Point","coordinates":[' + lat + ',' + lon + ']}')
 }
 
 function getStoredMapFeatures(node) {
@@ -254,13 +258,15 @@ function snapToJsonLocation(jsonfeats) {
 }
 
 function setLatLong() {
-    var existing = getMapFeatures()
     var latlong = $("#latlong").val()
     console.log(latlong)
     var newjsonfeats = latLongToJson(latlong)
-    var jsonfeats = existing ? existing + "@@" + newjsonfeats : newjsonfeats
-    console.log(jsonfeats)
-    snapToJsonLocation(jsonfeats)
+    if (newjsonfeats) {
+        var existing = getMapFeatures()
+        var jsonfeats = existing ? existing + "@@" + newjsonfeats : newjsonfeats
+        console.log("Setting location feats to " + jsonfeats)
+        snapToJsonLocation(jsonfeats)
+    }
 }
 
 function zoomFeatures() {

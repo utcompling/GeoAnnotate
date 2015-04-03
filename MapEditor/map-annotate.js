@@ -407,11 +407,10 @@ function nameChangeAnnotator() {
     annotUser = el.options[el.selectedIndex].innerHTML;
 }
 
-function removeAnnotations() {
+function removeAnnotationsUponLoad() {
     destroyMapFeatures()
-    annotationClassesAndAppliers.forEach(function(ca) {
-        ca.unapplier.undoToRange(makeRange(document.body))
-    })
+    // We don't actually need to remove the individual spans because we
+    // just overwrite the whole HTML.
     annotationChanges = 0
 }
 
@@ -420,8 +419,16 @@ function removeAnnotation() {
     if (overlapsAnnotation(selectionRange, true, annotationClasses))
         logMessage("Selection contains part of an annotation")
     else {
-        annotationClassesAndAppliers.forEach(function(ca) {
-            ca.unapplier.undoToSelection()
+        var nodes = getRangeNodes(getSelectionRange())
+        nodes.forEach(function(node) {
+            annotationClassesAndAppliers.forEach(function(ca) {
+               if (ca.clazz == node.className) {
+                    if (node.getAttribute("geo"))
+                        ca.geounapplier.undoToRange(makeRange(node))
+                    else
+                        ca.unapplier.undoToRange(makeRange(node))
+               }
+            })
         })
     }
 }

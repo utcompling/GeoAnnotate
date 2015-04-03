@@ -5,6 +5,7 @@ var SpansObject;
 var placeApplier;
 var placeUnapplier;
 var placeApplierGeo;
+var placeUnapplierGeo;
 
 var personApplier;
 var personUnapplier;
@@ -63,6 +64,11 @@ function init() {
         normalize: false
     });
 
+    placeUnapplierGeo = rangy.createClassApplier(placeClass, {
+        elementAttributes: {onclick:"spanClick(this)", geo:"1"},
+        normalize: true
+    });
+
     placeUnapplier = rangy.createClassApplier(placeClass, {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: true
@@ -78,7 +84,7 @@ function init() {
     });
 
     annotationClassesAndAppliers = [
-        {clazz: placeClass, applier: placeApplier, geoapplier:placeApplierGeo, unapplier: placeUnapplier},
+        {clazz: placeClass, applier: placeApplier, geoapplier:placeApplierGeo, geounapplier: placeUnapplierGeo, unapplier: placeUnapplier},
         {clazz: personClass, applier: personApplier, unapplier: personUnapplier}
     ]
 

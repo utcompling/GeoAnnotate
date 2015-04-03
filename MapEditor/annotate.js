@@ -59,23 +59,34 @@ function overlapsAnnotation(range, exactOK, classes) {
 // NOTE: Always check overlapsAnnotation() first.
 // NOTE: Currently, this returns an empty array if we are
 // entirely within a single annotation but not exactly on it.
+// If classes undefined will get every class in range 
 function getRangeNodes(range, classes) {
     // If the selection is entirely within a text node that's the child of
     // an annotation, return the annotation, because getNodes() won't find
     // the annotation.
+
+    function matchesClasses(node){
+        if (classes){
+            return (classes.indexOf(node.className) > -1)
+        }else{
+            return true
+        }
+    }
+
     if (range.startContainer === range.endContainer &&
         range.startContainer.nodeType === 3 && // text node
-        classes.indexOf(range.startContainer.parentNode.className) > -1)
+        matchesClasses(range.startContainer.parentNode))
         return [range.startContainer.parentNode]
     // If the selection is exactly on a single annotation, getNodes() doesn't
     // seem to find it, either, which is a bug; check for this case as well.
     if (range.startContainer === range.endContainer &&
         range.startContainer.nodeType === 1 && // element node
-        classes.indexOf(range.startContainer.className) > -1)
+        matchesClasses(range.startContainer))
         return [range.startContainer]
     return range.getNodes(false, function(node) {
-      return (classes.indexOf(node.className) > -1)
+      return (matchesClasses(node))
     })
+    
 }
 
 function makeRange(node) {
@@ -192,7 +203,7 @@ function httpGet(theUrl, callback)
 }
 
 function loadVolumeText(vol, spansObject) {
-    removeAnnotations()
+    removeAnnotationsUponLoad()
     selvol = vol
     var query = new Parse.Query(VolTextObject)
     query.equalTo("vol", vol)

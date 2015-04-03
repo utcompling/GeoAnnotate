@@ -10,8 +10,9 @@ var annotateClass = "geoarticle";
 var annotationChanges = 0
 
 // Remove any existing annotations and clear the article-changes list
-function removeAnnotations() {
-    unapplier.undoToRange(makeRange(document.body))
+function removeAnnotationsUponLoad() {
+    // We don't actually need to remove the individual spans because we
+    // just overwrite the whole HTML.
     annotationChanges = 0
 }
 

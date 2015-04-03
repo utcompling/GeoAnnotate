@@ -5,6 +5,7 @@ var SpansObject;
 var docgeoApplier;
 var docgeoUnapplier;
 var docgeoApplier_geo;
+var docgeoUnapplier_geo;
 
 var docgeoClass = "docgeo"
 var annotationClasses = [docgeoClass]
@@ -32,8 +33,13 @@ function init() {
         normalize: false
     });
 
+    docgeoUnapplier_geo = rangy.createClassApplier(docgeoClass, {
+        elementAttributes: {onclick:"spanClick(this)", geo:"1"},
+        normalize: true
+    });
+
     annotationClassesAndAppliers = [
-        {clazz: docgeoClass, applier: docgeoApplier, geoapplier: docgeoApplier_geo, unapplier: docgeoUnapplier}
+        {clazz: docgeoClass, applier: docgeoApplier, geoapplier: docgeoApplier_geo, geounapplier: docgeoUnapplier_geo, unapplier: docgeoUnapplier}
     ]
 
     keyCodeActions = [

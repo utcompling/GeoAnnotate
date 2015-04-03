@@ -14,7 +14,7 @@ var keyCodeActions
 var recentLocations = []
 var recentLocationsMaxLength = 10
 
-var lastClickedElement
+var lastSelectedNode
 
 $(document).ready(function() {
     // This handles selection in dataTable
@@ -72,8 +72,8 @@ var DeleteFeature = OpenLayers.Class(OpenLayers.Control, {
     },
     clickFeature: function(feature) {
         // if feature doesn't have a fid, destroy it
-        if (lastClickedElement)
-            setSelectionToNode(lastClickedElement)
+        if (lastSelectedNode)
+            setSelectionToNode(lastSelectedNode)
         if(feature.fid == undefined) {
             this.layer.destroyFeatures([feature]);
         } else {
@@ -117,7 +117,7 @@ function getMapFeatures() {
 // map, return "unknown".
 function getMapCentroid() {
     if (annotationLayer.features.length == 0)
-        return "unknown"
+        return undefined
     var centroid =
         annotationLayer.features[0].geometry.getCentroid().transform("EPSG:900913", "EPSG:4326")
     return centroid.y.toFixed(3) + "," + centroid.x.toFixed(3)
@@ -202,6 +202,16 @@ function displayMapFeatures(jsonfeats) {
         addMapFeatures(jsonToMapFeatures(jsonfeats))
 }
 
+// Add an annotation with an attached map feature
+function addFeature(clazz, applier) {
+    destroyMapFeatures()
+    if (addAnnotation(docgeoClass, docgeoApplier)) {
+        var nodes = getSelectionNodes()
+        if (nodes.length > 0)
+            lastSelectedNode = nodes[0]
+    }
+}
+
 function populateRecentLocations() {
     var htmlarr = []
     for (var i = recentLocations.length - 1; i >= 0; i--) {
@@ -218,21 +228,19 @@ function populateRecentLocations() {
 /* Add an element to the recentLocations list with the specified HTML,
  * GeoJSON features, and string describing the centroid. */
 function addToRecentLocations(html, jsonfeats, centroid) {
-    // We want to make sure we don't have duplicate entries. If DocGeo, we
-    // look for something matching the current centroid. Otherwise (for
-    // toponyms), we look for something matching the HTML text, replacing the
-    // current entry if found (we don't do this for DocGeo because the text
-    // will be long and might be changed by the user to something shorter).
-    var curIndex = (isDocGeo ?
-        recentLocations.map(function(obj) { return obj.centroid }).indexOf(centroid) :
+    // We want to make sure we don't have duplicate entries.
+    // Look for something matching the HTML text, replacing the current
+    // entry if found. It's important to do that even for DocGeo because
+    // someone might have added two points to a single feature and we want
+    // to store both points.
+    var curIndex =
         recentLocations.map(function(obj) { return obj.html }).indexOf(html)
-    )
     var newobj = {html: html, jsonfeats: jsonfeats, centroid: centroid}
     if (curIndex === -1) {
         if (recentLocations.length >= recentLocationsMaxLength)
             recentLocations = recentLocations.slice(1)
         recentLocations.push(newobj)
-    } else if (!isDocGeo) {
+    } else {
         recentLocations[curIndex] = newobj
     }
     populateRecentLocations()
@@ -251,8 +259,8 @@ function locClick(e) {
 function snapToJsonLocation(jsonfeats) {
     console.log(jsonfeats)
     displayMapFeatures(jsonfeats)
-    if (lastClickedElement) {
-        setSelectionToNode(lastClickedElement)
+    if (lastSelectedNode) {
+        setSelectionToNode(lastSelectedNode)
         addMapFeaturesToSelection(jsonfeats)
     }
 }
@@ -436,7 +444,7 @@ function removeAnnotation() {
 function spanClick(element) {
     //window.alert("Clicked inside article")
     setSelectionToNode(element)
-    lastClickedElement = element
+    lastSelectedNode = element
     var jsonfeats = getStoredMapFeatures(element)
     // alert("GeoJSON: " + jsonfeats)
     displayMapFeatures(jsonfeats)
@@ -447,10 +455,12 @@ function annotationFeatureChanged(event) {
     if (!programmaticMapChange) {
         var jsonfeats = getMapFeatures()
         var centroid = getMapCentroid()
-        var rangenodes = addMapFeaturesToSelection(jsonfeats)
-        if (rangenodes.length > 0) {
-            var text = rangenodes[0].innerHTML.substring(0, 20)
-            addToRecentLocations(text, jsonfeats, centroid)
+        if (jsonfeats && centroid) {
+            var rangenodes = addMapFeaturesToSelection(jsonfeats)
+            if (rangenodes.length > 0) {
+                var text = rangenodes[0].innerHTML.substring(0, 20)
+                addToRecentLocations(text, jsonfeats, centroid)
+            }
         }
     }
     // var bounds = event.feature.geometry.getBounds();

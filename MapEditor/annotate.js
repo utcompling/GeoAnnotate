@@ -149,16 +149,19 @@ function addAnnotation(clazz, applier) {
     //debugger;
     var selectionRange = getSelectionRange()
     if (selectionRange.startOffset != selectionRange.endOffset) {
-        if (overlapsAnnotation(selectionRange, false, [clazz]))
+        if (overlapsAnnotation(selectionRange, false, [clazz])) {
             logMessage("Selection already contains part of an annotation")
-        else {
+            return false
+        } else {
             var nodes = getRangeNodes(selectionRange, [clazz])
-            if (nodes.length > 0)
+            if (nodes.length > 0) {
                 logMessage("Selection already contains an annotation")
-            else {
+                return false
+            } else {
                 applier.applyToSelection()
                 annotationChanges += 1
                 logMessage("Added a " + clazz)
+                return true
             }
         }
     }

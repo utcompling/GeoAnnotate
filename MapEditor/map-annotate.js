@@ -155,6 +155,7 @@ function getStoredMapFeatures(node) {
 }
 
 function setStoredMapFeatures(node, feats, setattr) {
+    console.log("setStoredMapFeatures: node=[" + node + "] feats=[" + feats + "] setattr=" + setattr)
     //$( "span:first" ).text( jQuery.data( node, "features" ).first );
     $.data(node, "features", feats)
 
@@ -472,10 +473,11 @@ function spanClick(element) {
 }
 
 function annotationFeatureChanged(event) {
-    console.log("Programmatic Change:" + programmaticMapChange)
+    console.log("annotationFeatureChanged: Programmatic Change:" + programmaticMapChange)
     if (!programmaticMapChange) {
         var jsonfeats = getMapFeatures()
         var centroid = getMapCentroid()
+        console.log("annotationFeatureChanged: jsonfeats=[" + jsonfeats + "] centroid=[" + centroid + "] rangenodes=[" + rangenodes + "]")
         var rangenodes = addMapFeaturesToSelection(jsonfeats)
         if (jsonfeats && centroid && rangenodes.length > 0) {
             var text = rangenodes[0].innerHTML.substring(0, 20)

@@ -438,6 +438,8 @@ function removeAnnotation() {
                }
             })
         })
+        destroyMapFeatures()
+        lastSelectedNode = undefined
     }
 }
 

@@ -476,12 +476,10 @@ function annotationFeatureChanged(event) {
     if (!programmaticMapChange) {
         var jsonfeats = getMapFeatures()
         var centroid = getMapCentroid()
-        if (jsonfeats && centroid) {
-            var rangenodes = addMapFeaturesToSelection(jsonfeats)
-            if (rangenodes.length > 0) {
-                var text = rangenodes[0].innerHTML.substring(0, 20)
-                addToRecentLocations(text, jsonfeats, centroid)
-            }
+        var rangenodes = addMapFeaturesToSelection(jsonfeats)
+        if (jsonfeats && centroid && rangenodes.length > 0) {
+            var text = rangenodes[0].innerHTML.substring(0, 20)
+            addToRecentLocations(text, jsonfeats, centroid)
         }
     }
     // var bounds = event.feature.geometry.getBounds();

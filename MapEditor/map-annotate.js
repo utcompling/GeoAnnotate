@@ -256,12 +256,25 @@ function locClick(e) {
     snapToJsonLocation(jsonfeats)
 }
 
-function snapToJsonLocation(jsonfeats) {
-    console.log(jsonfeats)
+/* Given map features in JSON, set the map to contain those features and
+ * add to the selected annotation, if any. If ADDTORECENTLOCS is true,
+ * also add the map feature location to the recent-locations list.
+ */
+function snapToJsonLocation(jsonfeats, addtorecentlocs) {
+    console.log("Snapping to " + jsonfeats)
     displayMapFeatures(jsonfeats)
     if (lastSelectedNode) {
         setSelectionToNode(lastSelectedNode)
-        addMapFeaturesToSelection(jsonfeats)
+        var rangenodes = addMapFeaturesToSelection(jsonfeats)
+        if (addtorecentlocs) {
+            var centroid = getMapCentroid()
+            if (jsonfeats && centroid && rangenodes.length > 0) {
+                var text = rangenodes[0].innerHTML.substring(0, 20)
+                addToRecentLocations(text, jsonfeats, centroid)
+            }
+        }
+    } else {
+        logMessage("No selection to add map features to")
     }
 }
 
@@ -273,7 +286,7 @@ function setLatLong() {
         var existing = getMapFeatures()
         var jsonfeats = existing ? existing + "@@" + newjsonfeats : newjsonfeats
         console.log("Setting location feats to " + jsonfeats)
-        snapToJsonLocation(jsonfeats)
+        snapToJsonLocation(jsonfeats, "addtorecentlocs")
     }
 }
 
@@ -443,13 +456,19 @@ function removeAnnotation() {
     }
 }
 
+// Clicked on an annotation. Set up the map to display the annotation's
+// map features and add to recent locations.
 function spanClick(element) {
-    //window.alert("Clicked inside article")
     setSelectionToNode(element)
     lastSelectedNode = element
     var jsonfeats = getStoredMapFeatures(element)
-    // alert("GeoJSON: " + jsonfeats)
+    console.log("Click on element with JSON " + jsonfeats)
     displayMapFeatures(jsonfeats)
+    var centroid = getMapCentroid()
+    if (jsonfeats && centroid) {
+        var text = element.innerHTML.substring(0, 20)
+        addToRecentLocations(text, jsonfeats, centroid)
+    }
 }
 
 function annotationFeatureChanged(event) {

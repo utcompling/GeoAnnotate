@@ -34,7 +34,7 @@ $(document).ready(function() {
         table.row('.selected').remove().draw( false );
     } );
 
-    $("#col2text").on("cut copy paste", function(e) {
+    $("#col2text").on("cut paste", function(e) {
         e.preventDefault()
     })
     // Prevent changes in a content-editable div

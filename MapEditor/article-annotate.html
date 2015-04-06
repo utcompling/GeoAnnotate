@@ -50,15 +50,17 @@
             // Allow arrow keys, home, end, pgup, pgdn
             if (e.keyCode < 33 || e.keyCode > 40)
                 e.preventDefault()
-            //check if 'a' was pressed
-            if (e.keyCode == 65){
-                //window.alert(e.keyCode)
-                var sel = rangy.getSelection();
-                addArticle()
-            }
-            //check if 'r' was pressed
-            if (e.keyCode == 82){
-                removeAnnotation()
+            if (!e.altKey && !e.ctrlKey && !e.metaKey) {
+                //check if 'a' was pressed
+                if (e.keyCode == 65){
+                    //window.alert(e.keyCode)
+                    var sel = rangy.getSelection();
+                    addArticle()
+                }
+                //check if 'r' was pressed
+                if (e.keyCode == 82){
+                    removeAnnotation()
+                }
             }
         })
     } );

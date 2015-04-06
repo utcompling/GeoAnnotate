@@ -40,13 +40,20 @@ $(document).ready(function() {
     // Prevent changes in a content-editable div
     $("#col2text").on("keydown", function(e) {
         e = e || window.event;
+        console.log("Key pressed: keyCode=" + e.keyCode +
+                    " altKey=" + e.altKey +
+                    " ctrlKey=" + e.ctrlKey +
+                    " metaKey=" + e.metaKey +
+                    " shiftKey=" + e.shiftKey)
         // Allow arrow keys, home, end, pgup, pgdn
         if (e.keyCode < 33 || e.keyCode > 40)
             e.preventDefault()
-        keyCodeActions.forEach(function(action) {
-            if (e.keyCode == action.code)
-                action.action()
-        })
+        if (!e.altKey && !e.ctrlKey && !e.metaKey) {
+            keyCodeActions.forEach(function(action) {
+                if (e.keyCode == action.code)
+                    action.action()
+            })
+        }
     })
 } );
 
@@ -242,7 +249,8 @@ function addToRecentLocations(html, jsonfeats, centroid) {
             recentLocations = recentLocations.slice(1)
         recentLocations.push(newobj)
     } else {
-        recentLocations[curIndex] = newobj
+        recentLocations.splice(curIndex, 1)
+        recentLocations.push(newobj)
     }
     populateRecentLocations()
 }
@@ -302,8 +310,11 @@ function saveVolumeAnnotations() {
     // Fetch annotations
     var annotations = getAnnotations(annotationClasses)
     // Convert to an array of serialized annotations in the form "CLASS$START$END".
+    var geometries = 0
     var serialAnnotations = annotations.map(function(ann) {
         var jsonmapfeats = getStoredMapFeatures(ann.node) || ""
+        if (jsonmapfeats)
+            geometries++
         return ann.node.className + "$" + ann.start + "$" + ann.end + "$" + jsonmapfeats
     })
     // Join to a single serialized string
@@ -326,7 +337,8 @@ function saveVolumeAnnotations() {
     }, savefailure("finding existing entry")
     ).then(savesuccess(function() {
         annotationChanges = 0
-        logMessage("Saved " + annotations.length + " annotations")
+        logMessage("Saved " + annotations.length + " annotations (" +
+                   geometries + " geometries)")
     }),
         savefailure("saving new or updating existing entry"))
 }
@@ -358,6 +370,7 @@ function loadVolumeAnnotations(results) {
             return {start: start, end: end, className: className, jsonmapfeats: jsonmapfeats}
         })
         spans.sort(function(a, b) { return b.start - a.start })
+        var geometries = 0
         for (var i = 0; i < spans.length; i++) {
             var span = spans[i]
             if (span.start > textNode.length || span.end > textNode.length) {
@@ -368,9 +381,10 @@ function loadVolumeAnnotations(results) {
                 range.setStartAndEnd(textNode, span.start, span.end)
                 annotationClassesAndAppliers.forEach(function(ca) {
                     if (span.className == ca.clazz) {
-                        if (span.jsonmapfeats && ca.geoapplier){
+                        if (span.jsonmapfeats && ca.geoapplier) {
                             ca.geoapplier.applyToRange(range)
-                        }else{
+                            geometries++
+                        } else {
                             ca.applier.applyToRange(range)
                         }
                     }
@@ -381,7 +395,8 @@ function loadVolumeAnnotations(results) {
                 })
             }
         }
-        logMessage("Done Loading")
+        logMessage("Loaded " + spans.length + " annotations (" +
+                  geometries + " geometries)")
     })
 }
 

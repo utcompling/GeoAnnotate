@@ -240,22 +240,33 @@ function populateRecentLocations() {
  * GeoJSON features, and string describing the centroid. */
 function addToRecentLocations(node, jsonfeats, centroid) {
     // We want to make sure we don't have duplicate entries.
-    // Look for something matching the HTML text, replacing the current
-    // entry if found. It's important to do that even for DocGeo because
-    // someone might have added two points to a single feature and we want
-    // to store both points.
-    var html = node.innerHTML.substring(0, 20)
-    var curIndex =
+    var curNodeIndex =
         recentLocations.map(function(obj) { return obj.node }).indexOf(node)
-    var newobj = {node: node, html: html, jsonfeats: jsonfeats, centroid: centroid}
-    if (curIndex === -1) {
+    var curJsonIndex =
+        recentLocations.map(function(obj) { return obj.jsonfeats }).indexOf(jsonfeats)
+    if (curNodeIndex !== -1) {
+        // console.log("Found entry with same node")
+        // If the node is found, delete the current entry and create a new one
+        // with the new map features, but preserving the text of the current
+        // entry, which might have been changed by the user.
+        var curhtml = recentLocations[curNodeIndex].html
+        recentLocations.splice(curNodeIndex, 1)
+        recentLocations.push({node: node, html: curhtml, jsonfeats: jsonfeats, centroid: centroid})
+    } else if (curJsonIndex !== -1) {
+        // console.log("Found entry with same GeoJSON features")
+        // Else if we find an entry with the same GeoJSON features, move it
+        // to the top of the stack.
+        var objToMove = recentLocations[curJsonIndex]
+        recentLocations.splice(curJsonIndex, 1)
+        recentLocations.push(objToMove)
+    } else {
+        // console.log("Found no matching entry")
+        // Else, delete the item at the bottom of the stack if necessary (i.e.
+        // maximum stack size reached), and add new entry at top of stack.
+        var html = node.innerHTML.substring(0, 20)
         if (recentLocations.length >= recentLocationsMaxLength)
             recentLocations = recentLocations.slice(1)
-        recentLocations.push(newobj)
-    } else {
-        newobj.html = recentLocations[curIndex].html
-        recentLocations.splice(curIndex, 1)
-        recentLocations.push(newobj)
+        recentLocations.push({node: node, html: html, jsonfeats: jsonfeats, centroid: centroid})
     }
     populateRecentLocations()
 }

@@ -159,8 +159,8 @@ function addAnnotation(clazz, applier) {
                 return false
             } else {
                 applier.applyToSelection()
-                annotationChanges += 1
-                logMessage("Added a " + clazz)
+                annotationChanges++
+                logMessage("Added a " + clazz + " span")
                 return true
             }
         }

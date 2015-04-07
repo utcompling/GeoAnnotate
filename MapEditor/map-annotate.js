@@ -6,6 +6,8 @@ var VolTextObject
 var map, annotationLayer
 var programmaticMapChange = false
 
+// Number of changes made to annotations, either adding or removing a span
+// or adding/removing a geometry. Only really used to check whether non-zero.
 var annotationChanges = 0
 var selvol = "0"
 var annotationClassesAndAppliers
@@ -180,6 +182,7 @@ function setStoredMapFeatures(node, feats, setattr) {
 // Store the specified GeoJSON map features in the ranges associated with the selection.
 // Return the range nodes in the selection.
 function addMapFeaturesToSelection(jsonfeats) {
+    annotationChanges++
     var rangenodes = getSelectionNodes()
     rangenodes.forEach(function(node) {
         setStoredMapFeatures(node, jsonfeats, true)
@@ -485,6 +488,7 @@ function removeAnnotation() {
         })
         destroyMapFeatures()
         lastSelectedNode = undefined
+        annotationChanges++
     }
 }
 
@@ -548,7 +552,7 @@ function commonMapInit() {
     rangy.init();
 
     var table = $('#vol_table').DataTable()
-    var rows = getVolTableRows(table)
+    getVolTableRows(table)
 
     map = new OpenLayers.Map('map', {
         projection: new OpenLayers.Projection("EPSG:900913"),

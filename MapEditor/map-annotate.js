@@ -224,10 +224,13 @@ function populateRecentLocations() {
     var htmlarr = []
     for (var i = recentLocations.length - 1; i >= 0; i--) {
         var recentLoc = recentLocations[i]
+        var jsonfeats = recentLoc.jsonfeats
+        var splitfeats = jsonfeats.split("@@")
         var html = '<tr>' + '<td onclick="locClick(event)" data-jsonfeats="' +
-                     encodeURI(recentLoc.jsonfeats) + '">&#x24b3;</td><td><input value="' +
+                     encodeURI(jsonfeats) + '">&#x24b3;</td><td><input value="' +
                      recentLoc.html + '" onchange="locChange(event)" data-index="' + i +
-                     '"></td><td>' + recentLoc.centroid + '</td></tr>'
+                     '"></td><td>' + recentLoc.centroid + '</td><td>' +
+                     splitfeats.length + '</td></tr>'
         htmlarr.push(html)
     }
     $('#recentlocs').html(htmlarr.join("\n"))
@@ -235,20 +238,22 @@ function populateRecentLocations() {
 
 /* Add an element to the recentLocations list with the specified HTML,
  * GeoJSON features, and string describing the centroid. */
-function addToRecentLocations(html, jsonfeats, centroid) {
+function addToRecentLocations(node, jsonfeats, centroid) {
     // We want to make sure we don't have duplicate entries.
     // Look for something matching the HTML text, replacing the current
     // entry if found. It's important to do that even for DocGeo because
     // someone might have added two points to a single feature and we want
     // to store both points.
+    var html = node.innerHTML.substring(0, 20)
     var curIndex =
-        recentLocations.map(function(obj) { return obj.html }).indexOf(html)
-    var newobj = {html: html, jsonfeats: jsonfeats, centroid: centroid}
+        recentLocations.map(function(obj) { return obj.node }).indexOf(node)
+    var newobj = {node: node, html: html, jsonfeats: jsonfeats, centroid: centroid}
     if (curIndex === -1) {
         if (recentLocations.length >= recentLocationsMaxLength)
             recentLocations = recentLocations.slice(1)
         recentLocations.push(newobj)
     } else {
+        newobj.html = recentLocations[curIndex].html
         recentLocations.splice(curIndex, 1)
         recentLocations.push(newobj)
     }
@@ -482,8 +487,7 @@ function spanClick(element) {
     displayMapFeatures(jsonfeats)
     var centroid = getMapCentroid()
     if (jsonfeats && centroid) {
-        var text = element.innerHTML.substring(0, 20)
-        addToRecentLocations(text, jsonfeats, centroid)
+        addToRecentLocations(element, jsonfeats, centroid)
     }
 }
 
@@ -495,8 +499,7 @@ function annotationFeatureChanged(event) {
         console.log("annotationFeatureChanged: jsonfeats=[" + jsonfeats + "] centroid=[" + centroid + "] rangenodes=[" + rangenodes + "]")
         var rangenodes = addMapFeaturesToSelection(jsonfeats)
         if (jsonfeats && centroid && rangenodes.length > 0) {
-            var text = rangenodes[0].innerHTML.substring(0, 20)
-            addToRecentLocations(text, jsonfeats, centroid)
+            addToRecentLocations(rangenodes[0], jsonfeats, centroid)
         }
     }
     // var bounds = event.feature.geometry.getBounds();

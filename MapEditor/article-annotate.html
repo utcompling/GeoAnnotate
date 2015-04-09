@@ -3,9 +3,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="//www.parsecdn.com/js/parse-1.3.5.min.js"></script>
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.min.css">
     <script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
-    <script src="//code.jquery.com/ui/1.11.3/jquery-ui.min.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
     <script src="rangy/lib/rangy-core.js"></script>
     <script src="rangy/lib/rangy-textrange.js"></script>
     <script src="rangy/lib/rangy-classapplier.js"></script>
@@ -20,50 +20,6 @@
     <![endif]-->
     <!--This handles selection in dataTable -->
     <script type='text/javascript'>
-    $(document).ready(function() {
-        var table = $('#vol_table').DataTable();
-
-        $('#vol_table tbody').on('click', 'tr', function () {
-            var el = document.getElementById("selectUserAnnotator");
-            var usr = el.options[el.selectedIndex].innerHTML;
-            if (usr != "Default") {
-                if ( $(this).hasClass('selected') ) {
-                    $(this).removeClass('selected');
-                }
-                else {
-                    table.$('tr.selected').removeClass('selected');
-                    $(this).addClass('selected');
-                }
-            };
-        } );
-
-
-        $('#button').click(function() {
-            table.row('.selected').remove().draw(false);
-        } );
-        $("#col2text").on("cut paste", function(e) {
-            e.preventDefault()
-        })
-        // Prevent changes in a content-editable div
-        $("#col2text").on("keydown", function(e) {
-            e = e || window.event;
-            // Allow arrow keys, home, end, pgup, pgdn
-            if (e.keyCode < 33 || e.keyCode > 40)
-                e.preventDefault()
-            if (!e.altKey && !e.ctrlKey && !e.metaKey) {
-                //check if 'a' was pressed
-                if (e.keyCode == 65){
-                    //window.alert(e.keyCode)
-                    var sel = rangy.getSelection();
-                    addArticle()
-                }
-                //check if 'r' was pressed
-                if (e.keyCode == 82){
-                    removeAnnotation()
-                }
-            }
-        })
-    } );
     </script>
 
     <style>
@@ -153,7 +109,7 @@
             <div id="xleftcol3">
             </div>
             <div id="xrightcol3">
-                <table id="vol_table" style="width:100%" onclick="checkVol()">
+                <table id="vol_table" style="width:100%">
                     <thead>
                         <tr>
                             <th>Vol</th>

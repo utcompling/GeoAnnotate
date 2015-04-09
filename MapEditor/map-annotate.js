@@ -21,19 +21,14 @@ var lastSelectedNode
 $(document).ready(function() {
     // This handles selection in dataTable
     var table = $('#vol_table').DataTable();
- 
-    $('#vol_table tbody').on( 'click', 'tr', function () {
-        if ( $(this).hasClass('selected') ) {
-            $(this).removeClass('selected');
-        }
-        else {
-            table.$('tr.selected').removeClass('selected');
-            $(this).addClass('selected');
-        }
+
+    $('#vol_table tbody').on('click', 'tr', function() {
+        checkVol(this, '#vol_table', SpansObject)
     } );
  
-    $('#button').click( function () {
-        table.row('.selected').remove().draw( false );
+    // FIXME: What does this do?
+    $('#button').click( function() {
+        table.row('.selected').remove().draw( false )
     } );
 
     $("#col2text").on("cut paste", function(e) {
@@ -417,45 +412,6 @@ function loadVolumeAnnotations(results) {
         logMessage("Loaded " + spans.length + " annotations (" +
                   geometries + " geometries)")
     })
-}
-
-function closeDialog(node) {
-    $(node).dialog("close")
-}
-
-function checkVol(tableSelector) {
-    if (annotUser != "Default") {
-        var table = $(tableSelector).DataTable()
-        var ret = table.$('tr.selected')
-        if (ret.length > 0) {
-            var newvol = table.$('tr.selected').find('td:first').text()
-            if (annotationChanges > 0) {
-                $("<div>Do you want to save the existing annotations?</div>").dialog({
-                    resizable: false,
-                    modal: true,
-                    buttons: {
-                        "Yes": function() {
-                            saveAnnotations()
-                            loadVolumeText(newvol, SpansObject)
-                            closeDialog(this)
-                        },
-                        "No": function() {
-                            loadVolumeText(newvol, SpansObject)
-                            closeDialog(this)
-                        },
-                        "Cancel": function() {
-                            console.log("Canceled")
-                            window.alert("FIXME: We should set the visibly selected volume to the old one")
-                            closeDialog(this)
-                        }
-                    }
-                })
-            } 
-            loadVolumeText(newvol, SpansObject)
-        }
-    } else {
-        logMessage("Please select a non-default Annotator name prior to loading a volume")
-    }
 }
 
 function nameChangeAnnotator() {

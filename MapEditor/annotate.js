@@ -245,5 +245,59 @@ function getVolTableRows(table){
     })
 }
 
+function checkVol(row, tableSelector, spansObject) {
+    function closeDialog(node) {
+        $(node).dialog("close")
+    }
+
+    function selectNewRow() {
+        if ($(row).hasClass('selected')) {
+            $(row).removeClass('selected')
+        }
+        else {
+            table.$('tr.selected').removeClass('selected')
+            $(row).addClass('selected')
+        }
+    }
+
+    var table = $(tableSelector).DataTable()
+ 
+    if (annotUser != "Default") {
+        var ret = table.$(row)
+        if (ret.length > 0) {
+            var newvol = ret.find('td:first').text()
+            if (annotationChanges > 0) {
+                $('<div>Do you want to save the existing annotations?</div>').dialog({
+                    resizable: false,
+                    modal: true,
+                    buttons: {
+                        "Yes": function() {
+                            saveAnnotations()
+                            loadVolumeText(newvol, spansObject)
+                            selectNewRow()
+                            closeDialog(this)
+                        },
+                        "No": function() {
+                            loadVolumeText(newvol, spansObject)
+                            selectNewRow()
+                            closeDialog(this)
+                        },
+                        "Cancel": function() {
+                            logMessage("Canceled")
+                            console.log("FIXME: We should set the visibly selected volume to the old one")
+                            closeDialog(this)
+                        }
+                    }
+                })
+            } else {
+                loadVolumeText(newvol, spansObject)
+                selectNewRow()
+            }
+        }
+    } else {
+        logMessage("Please select a non-default Annotator name prior to loading a volume")
+    }
+}
+
 // Set 4-space indentation for vi
 // vi:sw=4

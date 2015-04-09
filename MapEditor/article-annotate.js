@@ -9,6 +9,40 @@ var selvol = "0";
 var annotateClass = "geoarticle";
 var annotationChanges = 0
 
+$(document).ready(function() {
+    var table = $('#vol_table').DataTable();
+
+    $('#vol_table tbody').on('click', 'tr', function() {
+        checkVol(this, '#vol_table', VolSpansObject)
+    } );
+
+    $('#button').click(function() {
+        table.row('.selected').remove().draw(false);
+    } );
+    $("#col2text").on("cut paste", function(e) {
+        e.preventDefault()
+    })
+    // Prevent changes in a content-editable div
+    $("#col2text").on("keydown", function(e) {
+        e = e || window.event;
+        // Allow arrow keys, home, end, pgup, pgdn
+        if (e.keyCode < 33 || e.keyCode > 40)
+            e.preventDefault()
+        if (!e.altKey && !e.ctrlKey && !e.metaKey) {
+            //check if 'a' was pressed
+            if (e.keyCode == 65){
+                //window.alert(e.keyCode)
+                var sel = rangy.getSelection();
+                addArticle()
+            }
+            //check if 'r' was pressed
+            if (e.keyCode == 82){
+                removeAnnotation()
+            }
+        }
+    })
+} )
+
 // Remove any existing annotations and clear the article-changes list
 function removeAnnotationsUponLoad() {
     // We don't actually need to remove the individual spans because we
@@ -110,46 +144,6 @@ function saveAnnotations() {
         saveVolumeAnnotations(success)
     } else {
         logMessage("Please select a non-default Annotator Name prior prior to saving")
-    }
-}
-
-function closeDialog(node) {
-    $(node).dialog("close")
-}
-
-function checkVol() {
-    if (annotUser != "Default") {
-        var table = $('#vol_table').DataTable()
-        var ret = table.$('tr.selected')
-        if (ret.length > 0) {
-            var newvol = table.$('tr.selected').find('td:first').text()
-            if (annotationChanges > 0) {
-                $("<div>Do you want to save the existing annotations?</div>").dialog({
-                    resizable: false,
-                    modal: true,
-                    buttons: {
-                        "Yes": function() {
-                            saveAnnotations()
-                            loadVolumeText(newvol, VolSpansObject)
-                            closeDialog(this)
-                        },
-                        "No": function() {
-                            loadVolumeText(newvol, VolSpansObject)
-                            closeDialog(this)
-                        },
-                        "Cancel": function() {
-                            console.log("Canceled")
-                            window.alert("FIXME: We should set the visibly selected volume to the old one")
-                            closeDialog(this)
-                        }
-                    }
-                })
-            } else {
-                loadVolumeText(newvol, VolSpansObject)
-            }
-        }
-    } else {
-        logMessage("Please select a non-default Annotator name prior to loading a volume")
     }
 }
 

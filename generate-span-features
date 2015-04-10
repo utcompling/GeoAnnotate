@@ -22,38 +22,43 @@ def read_volume_text():
     m = re.match("(?:.*/)?0*([1-9][0-9]*).txt", fn)
     if not m:
       print "Unable to parse filename: %s" % fn
+      print "File name format should be e.g. 001.txt where 001 means volume 1"
     else:
       volume_text[m.group(1)] = open(fn).read()
 
 def read_volume_spans():
   for spanfile in os.listdir(args.spans):
     m = re.match("(.*)-([0-9]+).txt$", spanfile)
-    user = m.group(1)
-    vol = m.group(2)
-    print "Parsing spans for user %s, volume %s" % (user, vol)
-    spantext = open(args.spans + "/" + spanfile).read()
-    splitspans = re.split(r"\|", spantext)
-    spans = []
-    for span in splitspans:
-      spanparts = re.split(r"\$", span)
-      spans.append([int(spanparts[1]), int(spanparts[2])])
-    io_spans = []
-    voltext = volume_text[vol]
-    ind = 0
-    for span in spans:
-      if span[0] > ind:
-        outside_text = voltext[ind:span[0]].strip()
+    if not m:
+      print "Unable to parse span filename %s" % spanfile
+      print 'File name format should be e.g. "Max Caldwalder-60.txt" where 60 means volume 60'
+    else: 
+      user = m.group(1)
+      vol = m.group(2)
+      print "Parsing spans for user %s, volume %s" % (user, vol)
+      spantext = open(args.spans + "/" + spanfile).read()
+      splitspans = re.split(r"\|", spantext)
+      spans = []
+      for span in splitspans:
+        spanparts = re.split(r"\$", span)
+        spans.append([int(spanparts[1]), int(spanparts[2])])
+      io_spans = []
+      voltext = volume_text[vol]
+      ind = 0
+      for span in spans:
+        if span[0] > ind:
+          outside_text = voltext[ind:span[0]].strip()
+          if outside_text:
+            io_spans.append([False, outside_text])
+        inside_text = voltext[span[0]:span[1]].strip()
+        if inside_text:
+          io_spans.append([True, inside_text])
+        ind = span[1]
+      if ind < len(voltext):
+        outside_text = voltext[ind:].strip()
         if outside_text:
           io_spans.append([False, outside_text])
-      inside_text = voltext[span[0]:span[1]].strip()
-      if inside_text:
-        io_spans.append([True, inside_text])
-      ind = span[1]
-    if ind < len(voltext):
-      outside_text = voltext[ind:].strip()
-      if outside_text:
-        io_spans.append([False, outside_text])
-    volume_spans[vol] = io_spans
+      volume_spans[vol] = io_spans
 
 def generate_paras(text):
   for para in re.split("\n\n", text.strip()):

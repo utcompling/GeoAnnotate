@@ -198,11 +198,19 @@ function httpGet(theUrl, callback)
     {
         if (xmlhttp.readyState==4 && xmlhttp.status==200)
         {
+            //console.log(xmlhttp)
             callback(xmlhttp.responseText);
         }
     }
+    //console.log(theUrl)
     xmlhttp.open("GET", theUrl, false);
-    xmlhttp.send();    
+    xmlhttp.setRequestHeader()
+    try {
+    xmlhttp.send();
+    }
+    catch(err){
+        window.alert("Failure loading URL " + theUrl + " : " + err.message)
+    }    
 }
 
 function loadVolumeText(vol, spansObject) {

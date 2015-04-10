@@ -204,7 +204,6 @@ function httpGet(theUrl, callback)
     }
     //console.log(theUrl)
     xmlhttp.open("GET", theUrl, false);
-    xmlhttp.setRequestHeader()
     try {
     xmlhttp.send();
     }

@@ -1,0 +1,188 @@
+#!/usr/bin/env python
+
+import argparse
+import re
+import os
+
+parser = argparse.ArgumentParser(description='Generate features for finding article spans in War of The Rebellion text')
+parser.add_argument('--simple-features', action='store_true',
+    help="Skip features referring to lines other than the current one.")
+parser.add_argument('--spans',
+    help="Directory containing spans for training data.")
+parser.add_argument('files', nargs='*',
+                   help='Files to process')
+
+args = parser.parse_args()
+
+volume_spans = {}
+volume_text = {}
+
+def read_volume_text():
+  for fn in args.files:
+    m = re.match("(?:.*/)?0*([1-9][0-9]*).txt", fn)
+    if not m:
+      print "Unable to parse filename: %s" % fn
+    else:
+      volume_text[m.group(1)] = open(fn).read()
+
+def read_volume_spans():
+  for spanfile in os.listdir(args.spans):
+    m = re.match("(.*)-([0-9]+).txt$", spanfile)
+    user = m.group(1)
+    vol = m.group(2)
+    print "Parsing spans for user %s, volume %s" % (user, vol)
+    spantext = open(args.spans + "/" + spanfile).read()
+    splitspans = re.split(r"\|", spantext)
+    spans = []
+    for span in splitspans:
+      spanparts = re.split(r"\$", span)
+      spans.append([int(spanparts[1]), int(spanparts[2])])
+    io_spans = []
+    voltext = volume_text[vol]
+    ind = 0
+    for span in spans:
+      if span[0] > ind:
+        outside_text = voltext[ind:span[0]].strip()
+        if outside_text:
+          io_spans.append([False, outside_text])
+      inside_text = voltext[span[0]:span[1]].strip()
+      if inside_text:
+        io_spans.append([True, inside_text])
+      ind = span[1]
+    if ind < len(voltext):
+      outside_text = voltext[ind:].strip()
+      if outside_text:
+        io_spans.append([False, outside_text])
+    volume_spans[vol] = io_spans
+
+def generate_paras(text):
+  for para in re.split("\n\n", text.strip()):
+    lines = [line.strip() for line in re.split("\n", para)]
+    yield '\n'.join(lines) + '\n'
+
+def get_biol_paras(vol):
+  allparas = []
+  for inside, text in volume_spans[vol]:
+    paras = [para for para in generate_paras(text)]
+    for i in xrange(len(paras)):
+      if not inside:
+        allparas.append(["O", paras[i]])
+      else:
+        if i == 0:
+          allparas.append(["B", paras[i]])
+        elif i == len(paras) - 1:
+          allparas.append(["L", paras[i]])
+        else:
+          allparas.append(["I", paras[i]])
+  return allparas
+
+ranks = "Lieutenant|First Lieutenant|Second Lieutenant|Brigadier|Captain|Major|Colonel|General|Adjutant|Commissioner|Secretary|Assistant|Asst.|Surgeon|Surg.|Chief|Provost|Judge|Acting"
+months = "January|February|March|April|May|June|July|August|September|October|November|December|JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER"
+date = r"\[?(%s)\]? ([1-9]|[123][0-9]), 186[0-9]" % months
+
+def period_comma_colon(entry, skipbasic=False, skipend=False):
+  name, regex = entry
+  feats = []
+  if not skipbasic:
+    feats.append([name, regex + r"\n"])
+  feats += [
+      [name + "-end-non-punc", regex + r"[^.,:]\n"],
+      [name + "-end-period", regex + r"\.\n"],
+      [name + "-end-comma", regex + r",\n"],
+      [name + "-end-colon", regex + r":\n"]
+    ]
+  return feats
+
+features = [
+    ["HEADQUARTERS", "HEADQUARTERS|HDQRS"],
+    ["ORDERS", "ORDERS"],
+    ["OFFICE", "OFFICE"],
+    ["DEPARTMENT", "DEPARTMENT"],
+    ["PRISON", "PRISON"],
+    ["CAMP", "CAMP"],
+    ["POST", "POST"],
+    ["FORT", "FORT"],
+    ["HOTEL", "HOTEL"],
+    ["date", r"%s\.?\n" % date],
+    ["capdate", r"^[A-Z][A-Z. ]+, %s\.?\n" % date],
+    ["Numbers", "Numbers [0-9]"],
+    ["Report of", "Report of"],
+    ["Inclosure", r"\[.*[Ii]nclosure|[Ii]ndorsement"],
+    ["salutation", r"(obedient servant|([Vv]ery|[Mm]ost) respectfully|Respectfully).*,\n"],
+    ["i-salutation", "(I am|I have the honor).*(obedient servant|respectfully).*,\n"],
+    ["with-respect-salutation", r"With .*respect,"],
+    ["brackets", r"^\[.*\]\n"],
+    ["start-brackets", r"^\["],
+    period_comma_colon(["rank", r"^(%s)[ -].{0,50}" % ranks]),
+    period_comma_colon(["any", ""], skipbasic=True),
+    period_comma_colon(["all-caps", r"^[A-Z][A-Z.,' ]+"]),
+    period_comma_colon(["capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+"]),
+    period_comma_colon(["begin-capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+.*"]),
+    period_comma_colon(["shortline", r"^.{0,70}"]),
+]
+
+def flatten_features():
+  for feat in features:
+    if type(feat[0]) is list:
+      for subfeat in feat:
+        yield subfeat
+    else:
+      yield feat
+
+flattened_features = [feat for feat in flatten_features()]
+
+def generate_features(paras, i):
+  features = []
+  for feat in flattened_features:
+    name, regex = feat
+    match = re.search(regex, paras[i][1], re.M)
+    match1last = i > 0 and re.search(regex, paras[i - 1][1], re.M)
+    match2last = i > 1 and re.search(regex, paras[i - 2][1], re.M)
+    match1next = i < len(paras) - 1 and re.search(regex, paras[i + 1][1], re.M)
+    match2next = i < len(paras) - 2 and re.search(regex, paras[i + 2][1], re.M)
+    if match:
+      features.append(name)
+    if not args.simple_features:
+      if match1last:
+        features.append(name + "-1")
+      if match2last:
+        features.append(name + "-2")
+      if match1next:
+        features.append(name + "+1")
+      if match2next:
+        features.append(name + "+2")
+      if match or match1last:
+        features.append(name + "-or-01")
+      if match or match1next:
+        features.append(name + "-or+01")
+      if match or match1last or match2last:
+        features.append(name + "-or-012")
+      if match or match1next or match2next:
+        features.append(name + "-or+012")
+      if match and match1last:
+        features.append(name + "-and-01")
+      if match and match1next:
+        features.append(name + "-and+01")
+      if match and match1last and match2last:
+        features.append(name + "-and-012")
+      if match and match1next and match2next:
+        features.append(name + "-and+012")
+      if match or match1last or match1next:
+        features.append(name + "-or-01+1")
+      if match and match1last and match1next:
+        features.append(name + "-and-01+1")
+  return ' '.join(features)
+
+read_volume_text()
+read_volume_spans()
+vols = sorted([vol for vol in volume_spans], key=lambda x:int(x))
+for vol in vols:
+  print "Outputting paragraphs for volume %s" % vol
+  paras = get_biol_paras(vol)
+  for i in xrange(len(paras)):
+    print "-------------- BEGIN PARA: %s ---------------" % paras[i][0]
+    print paras[i][1].strip()
+    print "-------------- END PARA ---------------"
+    print "-------------- FEATURES: %s ---------------" % generate_features(paras, i)
+
+

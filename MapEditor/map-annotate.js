@@ -211,7 +211,7 @@ function displayMapFeatures(jsonfeats) {
 // Add an annotation with an attached map feature
 function addFeature(clazz, applier) {
     destroyMapFeatures()
-    if (addAnnotation(docgeoClass, docgeoApplier)) {
+    if (addAnnotation(clazz, applier)) {
         var nodes = getSelectionNodes()
         if (nodes.length > 0)
             lastSelectedNode = nodes[0]

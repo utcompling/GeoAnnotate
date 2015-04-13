@@ -99,6 +99,7 @@ class FeatureVector:
   [9, 1, "endColon_next", check_colon]
   ]
 
+  #Complex Feature Functions return a string rather than a 0 or 1
   complex_feature_functions = [
   [10, 0, "lastString", last_token],
   [11, -1, "lastString_prev", last_token],
@@ -243,49 +244,6 @@ def get_biol_paras(vol):
           allparas.append(["I", paras[i].strip()])
           last_inside = 0
   return allparas
-
-
-def generate_features(paras, i):
-  features = []
-  for feat in flattened_features:
-    name, regex = feat
-    match = re.search(regex, paras[i][1], re.M)
-    match1last = i > 0 and re.search(regex, paras[i - 1][1], re.M)
-    match2last = i > 1 and re.search(regex, paras[i - 2][1], re.M)
-    match1next = i < len(paras) - 1 and re.search(regex, paras[i + 1][1], re.M)
-    match2next = i < len(paras) - 2 and re.search(regex, paras[i + 2][1], re.M)
-    if match:
-      features.append(name)
-    if not args.simple_features:
-      if match1last:
-        features.append(name + "-1")
-      if match2last:
-        features.append(name + "-2")
-      if match1next:
-        features.append(name + "+1")
-      if match2next:
-        features.append(name + "+2")
-      if match or match1last:
-        features.append(name + "-or-01")
-      if match or match1next:
-        features.append(name + "-or+01")
-      if match or match1last or match2last:
-        features.append(name + "-or-012")
-      if match or match1next or match2next:
-        features.append(name + "-or+012")
-      if match and match1last:
-        features.append(name + "-and-01")
-      if match and match1next:
-        features.append(name + "-and+01")
-      if match and match1last and match2last:
-        features.append(name + "-and-012")
-      if match and match1next and match2next:
-        features.append(name + "-and+012")
-      if match or match1last or match1next:
-        features.append(name + "-or-01+1")
-      if match and match1last and match1next:
-        features.append(name + "-and-01+1")
-  return ' '.join(features)
 
 if args.train:
   read_volume_text()

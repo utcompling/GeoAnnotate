@@ -3,28 +3,185 @@
 import argparse
 import re
 import os
+import text
+import sys
 
 parser = argparse.ArgumentParser(description='Generate features for finding article spans in War of The Rebellion text')
 parser.add_argument('--simple-features', action='store_true',
     help="Skip features referring to lines other than the current one.")
+parser.add_argument('--train', action='store_true', help="Add --train flag if running in train mode")
 parser.add_argument('--spans',
     help="Directory containing spans for training data.")
-parser.add_argument('files', nargs='*',
-                   help='Files to process')
+parser.add_argument('--files',
+                   help='Directory containing volume text files')
+parser.add_argument('--featurize-no-label', action='store_true', help="outputs a featurized version of each file without labels")
 
 args = parser.parse_args()
+
+ranks = "Lieutenant|First Lieutenant|Second Lieutenant|Brigadier|Captain|Major|Colonel|General|Adjutant|Commissioner|Secretary|Assistant|Asst.|Surgeon|Surg.|Chief|Provost|Judge|Acting"
+months = "January|February|March|April|May|June|July|August|September|October|November|December|JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER"
+date = r"\[?(%s)\]? ([1-9]|[123][0-9]), 186[0-9]" % months
+
+def legal_position(i, offset, bp_length):
+  if i + offset < bp_length and i + offset >= 0:
+    return 1
+  else:
+    return 0
+
+def check_period(i, position, bp):
+  if legal_position(i, position, len(bp)):
+    #print i, bp[i + position]
+    if len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == u'.':
+      return 1
+    else: return 0
+  else: return 0
+
+def check_comma(i, position, bp):
+  if legal_position(i, position, len(bp)):
+    #print i, bp[i + position]
+    if len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == u',':
+      return 1
+    else: return 0
+  else: return 0
+
+def check_colon(i, position, bp):
+  if legal_position(i, position, len(bp)):
+    #print i, bp[i + position]
+    if len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == u':':
+      return 1
+    else: return 0
+  else: return 0
+
+def first_token(i, position, bp):
+  if legal_position(i, position, len(bp)):
+    if len(bp[i + position][1]) > 0:
+      tokens = text.tokenize(bp[i + position][1])
+      #print tokens
+      j = 0
+      while j < len(tokens):
+        if tokens[j] not in [u',', u'.', u':']:
+          return tokens[j]
+        j = j + 1
+    else: return u"EMPTY"
+  else: return u"NONE"
+  return u"GRAMMAR"
+
+def last_token(i, position, bp):
+  if legal_position(i, position, len(bp)):
+    if len(bp[i + position][1]) > 0:
+      tokens = text.tokenize(bp[i + position][1])
+      #print tokens
+      j = len(tokens)-1
+      while j > 0:
+        if tokens[j] not in [u',', u'.', u':']:
+          return tokens[j]
+        j = j - 1
+    else: return u"EMPTY"
+  else: return u"NONE"
+  return u"GRAMMAR"
+
+class FeatureVector:
+
+  
+  vectors = []
+
+  #feature_set elements = [index, position, feature_name, feature_function]
+  #currently ignores the 'index' feature
+  simple_feature_functions = [
+  [1, 0, "endPeriod", check_period],
+  [2, -1, "endPeriod_prev", check_period],
+  [3, 1, "endPeriod_next", check_period],
+  [4, 0, "endComma", check_comma],
+  [5, -1, "endComma_prev", check_comma],
+  [6, 1, "endComma_next", check_comma],
+  [7, 0, "endColon", check_colon],
+  [8, -1, "endColon_prev", check_colon],
+  [9, 1, "endColon_next", check_colon]
+  ]
+
+  complex_feature_functions = [
+  [10, 0, "lastString", last_token],
+  [11, -1, "lastString_prev", last_token],
+  [12, 0, "firstString", first_token],
+  [13, -1, "firstString_prev", first_token]
+  ]
+
+  re_feature_functions = [
+    [14, 0, "PLACE", "HEADQUARTERS|HDQRS|ORDERS|OFFICE|DEPARTMENT|PRISON|CAMP|POST|FORT|HOTEL"],
+    [15, 0, "DATE", r"%s\.?" % date],
+    [16, 0, "capdate", r"^[A-Z][A-Z. ]+, %s\.?" % date],
+    [17, 0, "Numbers", "Numbers [0-9]"],
+    [18, 0, "Report of", "Report of"],
+    [19, 0, "Inclosure", r"\[.*[Ii]nclosure|[Ii]ndorsement"],
+    [20, 0, "salutation", r"(obedient servant|([Vv]ery|[Mm]ost) respectfully|Respectfully).*,"],
+    [21, 0, "i-salutation", "(I am|I have the honor).*(obedient servant|respectfully).*,"],
+    [22, 0, "with-respect-salutation", r"With .*respect,"],
+    [23, 0, "brackets", r"^\[.*\]"],
+    [24, 0, "start-brackets", r"^\["],
+    [25, 0, "rank", r"^(%s)[ -].{0,50}" % ranks],
+    [26, 0, "all-caps", r"^[A-Z][A-Z.,' ]+"],
+    [27, 0, "capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+"],
+    [28, 0, "begin-capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+.*"],
+    [29, 0, "shortline", r"^.{0,70}"],
+    [30, 0, "midline", r"^.{71,110}"],
+    [31, 0, "longline", r"^.{111,}"]
+  ]
+
+  def __init__(self, biol_paras=[]):
+    self.vectors = []
+    self.add_vol(biol_paras)
+
+  def add_vol(self, biol_paras):
+    i = 0
+    for bp in biol_paras:
+      vector = {}
+      for f in self.simple_feature_functions:
+        vector[f[2]] = f[-1](i, f[1], biol_paras)
+      for f in self.complex_feature_functions:
+        result = f[-1](i, f[1], biol_paras)
+        vector[f[2]+u'_'+result] = 1
+      for f in self.re_feature_functions:
+        m = re.search(f[-1], biol_paras[i + f[1]][1], re.M)
+        if m is not None:
+          vector[f[2]] = 1
+          #print f, m
+        else: vector[f[2]] = 0
+      self.vectors.append([biol_paras[i][0], biol_paras[i][1], vector])
+      i += 1
+    #print self.vectors
+
+  def write_mallet_train(self, outfile):
+    with open(outfile, 'w') as w:
+      for v in self.vectors:
+        flist = []
+        for f in v[-1]:
+          if v[-1][f] == 1:
+            flist.append(f)
+        flist.append(v[0])
+        w.write(u' '.join(flist))
+        w.write('\n')
+
+  def write_mallet_test(self, outfile):
+    with open(outfile, 'w') as w:
+      for v in self.vectors:
+        flist = []
+        for f in v[-1]:
+          if v[-1][f] == 1:
+            flist.append(f)
+        w.write(u' '.join(flist))
+        w.write('\n')
 
 volume_spans = {}
 volume_text = {}
 
 def read_volume_text():
-  for fn in args.files:
+  for fn in os.listdir(args.files):
     m = re.match("(?:.*/)?0*([1-9][0-9]*).txt", fn)
     if not m:
       print "Unable to parse filename: %s" % fn
       print "File name format should be e.g. 001.txt where 001 means volume 1"
     else:
-      volume_text[m.group(1)] = open(fn).read()
+      volume_text[m.group(1)] = open(os.path.join(args.files, fn)).read()
 
 def read_volume_spans():
   for spanfile in os.listdir(args.spans):
@@ -69,72 +226,24 @@ def get_biol_paras(vol):
   allparas = []
   for inside, text in volume_spans[vol]:
     paras = [para for para in generate_paras(text)]
+    last_inside = 0
     for i in xrange(len(paras)):
       if not inside:
-        allparas.append(["O", paras[i]])
+        last_inside += 1
+        if last_inside < 3:
+          allparas.append(["O", paras[i].strip()])
       else:
         if i == 0:
-          allparas.append(["B", paras[i]])
+          allparas.append(["B", paras[i].strip()])
+          last_inside = 0
         elif i == len(paras) - 1:
-          allparas.append(["L", paras[i]])
+          allparas.append(["L", paras[i].strip()])
+          last_inside = 0
         else:
-          allparas.append(["I", paras[i]])
+          allparas.append(["I", paras[i].strip()])
+          last_inside = 0
   return allparas
 
-ranks = "Lieutenant|First Lieutenant|Second Lieutenant|Brigadier|Captain|Major|Colonel|General|Adjutant|Commissioner|Secretary|Assistant|Asst.|Surgeon|Surg.|Chief|Provost|Judge|Acting"
-months = "January|February|March|April|May|June|July|August|September|October|November|December|JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER"
-date = r"\[?(%s)\]? ([1-9]|[123][0-9]), 186[0-9]" % months
-
-def period_comma_colon(entry, skipbasic=False, skipend=False):
-  name, regex = entry
-  feats = []
-  if not skipbasic:
-    feats.append([name, regex + r"\n"])
-  feats += [
-      [name + "-end-non-punc", regex + r"[^.,:]\n"],
-      [name + "-end-period", regex + r"\.\n"],
-      [name + "-end-comma", regex + r",\n"],
-      [name + "-end-colon", regex + r":\n"]
-    ]
-  return feats
-
-features = [
-    ["HEADQUARTERS", "HEADQUARTERS|HDQRS"],
-    ["ORDERS", "ORDERS"],
-    ["OFFICE", "OFFICE"],
-    ["DEPARTMENT", "DEPARTMENT"],
-    ["PRISON", "PRISON"],
-    ["CAMP", "CAMP"],
-    ["POST", "POST"],
-    ["FORT", "FORT"],
-    ["HOTEL", "HOTEL"],
-    ["date", r"%s\.?\n" % date],
-    ["capdate", r"^[A-Z][A-Z. ]+, %s\.?\n" % date],
-    ["Numbers", "Numbers [0-9]"],
-    ["Report of", "Report of"],
-    ["Inclosure", r"\[.*[Ii]nclosure|[Ii]ndorsement"],
-    ["salutation", r"(obedient servant|([Vv]ery|[Mm]ost) respectfully|Respectfully).*,\n"],
-    ["i-salutation", "(I am|I have the honor).*(obedient servant|respectfully).*,\n"],
-    ["with-respect-salutation", r"With .*respect,"],
-    ["brackets", r"^\[.*\]\n"],
-    ["start-brackets", r"^\["],
-    period_comma_colon(["rank", r"^(%s)[ -].{0,50}" % ranks]),
-    period_comma_colon(["any", ""], skipbasic=True),
-    period_comma_colon(["all-caps", r"^[A-Z][A-Z.,' ]+"]),
-    period_comma_colon(["capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+"]),
-    period_comma_colon(["begin-capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+.*"]),
-    period_comma_colon(["shortline", r"^.{0,70}"]),
-]
-
-def flatten_features():
-  for feat in features:
-    if type(feat[0]) is list:
-      for subfeat in feat:
-        yield subfeat
-    else:
-      yield feat
-
-flattened_features = [feat for feat in flatten_features()]
 
 def generate_features(paras, i):
   features = []
@@ -178,16 +287,40 @@ def generate_features(paras, i):
         features.append(name + "-and-01+1")
   return ' '.join(features)
 
-read_volume_text()
-read_volume_spans()
-vols = sorted([vol for vol in volume_spans], key=lambda x:int(x))
-for vol in vols:
-  print "Outputting paragraphs for volume %s" % vol
-  paras = get_biol_paras(vol)
-  for i in xrange(len(paras)):
-    print "-------------- BEGIN PARA: %s ---------------" % paras[i][0]
-    print paras[i][1].strip()
-    print "-------------- END PARA ---------------"
-    print "-------------- FEATURES: %s ---------------" % generate_features(paras, i)
+if args.train:
+  read_volume_text()
+  read_volume_spans()
+  vols = sorted([vol for vol in volume_spans], key=lambda x:int(x))
+  FV = FeatureVector()
+  for vol in vols:
+    print "Outputting paragraphs for volume %s" % vol
+    paras = get_biol_paras(vol)
+    #allparas.append(paras)
+    FV.add_vol(paras)
+  for v in FV.vectors:
+    print v
+  FV.write_mallet('articleseg_feats.txt')
+if args.featurize_no_label:
+  print "Begin Featurizing"
+  read_volume_text()
+  print "Done reading vol text"
+  for vol in volume_text:
+    FV = FeatureVector()
+    allparas = []
+    for line in generate_paras(volume_text[vol]):
+      allparas.append(['NONE', line.strip()])
+    print vol
+    FV.add_vol(allparas)
+    #print [para for para in generate_paras(volume_text[vol])][0]
+    #print FV.vectors[0]
+    FV.write_mallet_test(str(vol)+".feats")
+
+
+#print paras
+'''for i in xrange(len(paras)):
+  print "-------------- BEGIN PARA: %s ---------------" % paras[i][0]
+  print paras[i][1].strip()
+  print "-------------- END PARA ---------------"
+  print "-------------- FEATURES: %s ---------------" % generate_features(paras, i)'''
 
 

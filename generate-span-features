@@ -36,29 +36,22 @@ def legal_position(i, offset, bp_length):
   else:
     return 0
 
-def check_period(i, position, bp):
-  if legal_position(i, position, len(bp)):
-    #print i, bp[i + position]
-    if len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == u'.':
-      return 1
-    else: return 0
-  else: return 0
-
-def check_comma(i, position, bp):
-  if legal_position(i, position, len(bp)):
-    #print i, bp[i + position]
-    if len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == u',':
-      return 1
-    else: return 0
-  else: return 0
-
-def check_colon(i, position, bp):
-  if legal_position(i, position, len(bp)):
-    #print i, bp[i + position]
-    if len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == u':':
-      return 1
-    else: return 0
-  else: return 0
+#def check_punc(i, position, bp, punc):
+#  if legal_position(i, position, len(bp)):
+#    #print i, bp[i + position]
+#    if len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == punc:
+#      return 1
+#    else: return 0
+#  else: return 0
+#
+#def check_period(i, position, bp):
+#  return check_punc(i, position, bp, '.')
+#
+#def check_comma(i, position, bp):
+#  return check_punc(i, position, bp, ',')
+#
+#def check_colon(i, position, bp):
+#  return check_punc(i, position, bp, ':')
 
 def first_token(i, position, bp):
   if legal_position(i, position, len(bp)):
@@ -88,53 +81,113 @@ def last_token(i, position, bp):
   else: return u"NONE"
   return u"GRAMMAR"
 
+def yield_flatten_features(features):
+  for feat in features:
+    if type(feat[0]) is list:
+      for subfeat in feat:
+        yield subfeat
+    else:
+      yield feat
+
+def flatten_features(features):
+  return [f for f in yield_flatten_features(features)]
+
+def period_comma_colon(entry, skipbasic=False):
+  pos, name, regex = entry
+  feats = []
+  if not skipbasic:
+    feats.append([pos, name, regex + r"\n"])
+  feats += [
+      [pos, name + "-end_NonPunc", regex + r"[^.,:]\n"],
+      [pos, name + "-end_Period", regex + r"\.\n"],
+      [pos, name + "-end_Comma", regex + r",\n"],
+      [pos, name + "-end_Colon", regex + r":\n"]
+    ]
+  return feats
+
+def generate_features(paras, i, featdescs):
+  features = []
+  for featdesc in featdescs:
+    pos, name, regex = featdesc
+    match = re.search(regex, paras[i][1], re.M)
+    match1last = i > 0 and re.search(regex, paras[i - 1][1], re.M)
+    match2last = i > 1 and re.search(regex, paras[i - 2][1], re.M)
+    match1next = i < len(paras) - 1 and re.search(regex, paras[i + 1][1], re.M)
+    match2next = i < len(paras) - 2 and re.search(regex, paras[i + 2][1], re.M)
+    if match:
+      features.append(name)
+    if not args.simple_features:
+      if match1last:
+        features.append(name + "-1")
+      if match2last:
+        features.append(name + "-2")
+      if match1next:
+        features.append(name + "+1")
+      if match2next:
+        features.append(name + "+2")
+      if match or match1last:
+        features.append(name + "-or-01")
+      if match or match1next:
+        features.append(name + "-or+01")
+      if match or match1last or match2last:
+        features.append(name + "-or-012")
+      if match or match1next or match2next:
+        features.append(name + "-or+012")
+      if match and match1last:
+        features.append(name + "-and-01")
+      if match and match1next:
+        features.append(name + "-and+01")
+      if match and match1last and match2last:
+        features.append(name + "-and-012")
+      if match and match1next and match2next:
+        features.append(name + "-and+012")
+      if match or match1last or match1next:
+        features.append(name + "-or-01+1")
+      if match and match1last and match1next:
+        features.append(name + "-and-01+1")
+  return features
+ 
 class FeatureVector:
 
   
   vectors = []
 
-  #feature_set elements = [index, position, feature_name, feature_function]
-  #currently ignores the 'index' feature
-  simple_feature_functions = [
-  [1, 0, "endPeriod", check_period],
-  [2, -1, "endPeriod_prev", check_period],
-  [3, 1, "endPeriod_next", check_period],
-  [4, 0, "endComma", check_comma],
-  [5, -1, "endComma_prev", check_comma],
-  [6, 1, "endComma_next", check_comma],
-  [7, 0, "endColon", check_colon],
-  [8, -1, "endColon_prev", check_colon],
-  [9, 1, "endColon_next", check_colon]
-  ]
+  #feature_set elements = [position, feature_name, feature_function]
+
+  #Simple Feature Functions return 0 or 1; none currently; previously
+  #handled lines ending in period/comma/colon but that's now handled by
+  #period_comma_colon()
+  simple_feature_functions = flatten_features([])
 
   #Complex Feature Functions return a string rather than a 0 or 1
-  complex_feature_functions = [
-  [10, 0, "lastString", last_token],
-  [11, -1, "lastString_prev", last_token],
-  [12, 0, "firstString", first_token],
-  [13, -1, "firstString_prev", first_token]
-  ]
+  complex_feature_functions = flatten_features([
+  [0, "lastString", last_token],
+  [-1, "lastString_prev", last_token],
+  [0, "firstString", first_token],
+  [-1, "firstString_prev", first_token]
+  ])
 
-  re_feature_functions = [
-    [14, 0, "PLACE", "HEADQUARTERS|HDQRS|ORDERS|OFFICE|DEPARTMENT|PRISON|CAMP|POST|FORT|HOTEL"],
-    [15, 0, "DATE", r"%s\.?" % date],
-    [16, 0, "capdate", r"^[A-Z][A-Z. ]+, %s\.?" % date],
-    [17, 0, "Numbers", "Numbers [0-9]"],
-    [18, 0, "Report of", "Report of"],
-    [19, 0, "Inclosure", r"\[.*[Ii]nclosure|[Ii]ndorsement"],
-    [20, 0, "salutation", r"(obedient servant|([Vv]ery|[Mm]ost) respectfully|Respectfully).*,"],
-    [21, 0, "i-salutation", "(I am|I have the honor).*(obedient servant|respectfully).*,"],
-    [22, 0, "with-respect-salutation", r"With .*respect,"],
-    [23, 0, "brackets", r"^\[.*\]"],
-    [24, 0, "start-brackets", r"^\["],
-    [25, 0, "rank", r"^(%s)[ -].{0,50}" % ranks],
-    [26, 0, "all-caps", r"^[A-Z][A-Z.,' ]+"],
-    [27, 0, "capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+"],
-    [28, 0, "begin-capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+.*"],
-    [29, 0, "shortline", r"^.{0,70}"],
-    [30, 0, "midline", r"^.{71,110}"],
-    [31, 0, "longline", r"^.{111,}"]
-  ]
+  re_feature_functions = flatten_features([
+    [0, "PLACE", "HEADQUARTERS|HDQRS|ORDERS|OFFICE|DEPARTMENT|PRISON|CAMP|POST|FORT|HOTEL"],
+    [0, "DATE", r"%s\.?" % date],
+    [0, "capdate", r"^[A-Z][A-Z. ]+, %s\.?" % date],
+    [0, "Numbers", "Numbers [0-9]"],
+    [0, "Report of", "Report of"],
+    [0, "Inclosure", r"\[.*[Ii]nclosure|[Ii]ndorsement"],
+    [0, "salutation", r"(obedient servant|([Vv]ery|[Mm]ost) respectfully|Respectfully).*,"],
+    [0, "i-salutation", "(I am|I have the honor).*(obedient servant|respectfully).*,"],
+    [0, "with-respect-salutation", r"With .*respect,"],
+    [0, "brackets", r"^\[.*\]"],
+    [0, "start-brackets", r"^\["],
+    period_comma_colon([0, "rank", r"^(%s)[ -].{0,50}" % ranks]),
+    period_comma_colon([0, "any", ""], skipbasic=True),
+    period_comma_colon([0, "all-caps", r"^[A-Z][A-Z.,' ]+"]),
+    period_comma_colon([0, "capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+"]),
+    period_comma_colon([0, "begin-capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+.*"]),
+    period_comma_colon([0, "shortline", r"^.{0,70}"]),
+    period_comma_colon([0, "midline", r"^.{71,110}"]),
+    period_comma_colon([0, "longline", r"^.{111,}"]),
+  ])
 
   def __init__(self, biol_paras=[]):
     self.vectors = []
@@ -143,42 +196,28 @@ class FeatureVector:
   def add_vol(self, biol_paras):
     i = 0
     for bp in biol_paras:
-      vector = {}
+      features = []
       for f in self.simple_feature_functions:
-        vector[f[2]] = f[-1](i, f[1], biol_paras)
+        if f[-1](i, f[0], biol_paras):
+          features.append(f[1])
       for f in self.complex_feature_functions:
-        result = f[-1](i, f[1], biol_paras)
-        vector[f[2]+u'_'+result] = 1
-      for f in self.re_feature_functions:
-        m = re.search(f[-1], biol_paras[i + f[1]][1], re.M)
-        if m is not None:
-          vector[f[2]] = 1
-          #print f, m
-        else: vector[f[2]] = 0
-      self.vectors.append([biol_paras[i][0], biol_paras[i][1], vector])
+        result = f[-1](i, f[0], biol_paras)
+        features.append(f[1]+u'_'+result)
+      features.extend(generate_features(biol_paras, i,
+        self.re_feature_functions))
+      self.vectors.append([biol_paras[i][0], biol_paras[i][1], features])
       i += 1
     #print self.vectors
 
   def write_mallet_train(self, outfile):
     with open(outfile, 'w') as w:
       for v in self.vectors:
-        flist = []
-        for f in v[-1]:
-          if v[-1][f] == 1:
-            flist.append(f)
-        flist.append(v[0])
-        w.write(u' '.join(flist))
-        w.write('\n')
+        w.write(u' '.join(v[-1]) + ' ' + v[0] + '\n')
 
   def write_mallet_test(self, outfile):
     with open(outfile, 'w') as w:
       for v in self.vectors:
-        flist = []
-        for f in v[-1]:
-          if v[-1][f] == 1:
-            flist.append(f)
-        w.write(u' '.join(flist))
-        w.write('\n')
+        w.write(u' '.join(v[-1]) + '\n')
 
 volume_spans = {}
 volume_text = {}
@@ -247,16 +286,16 @@ def get_biol_paras(vol):
       if not inside:
         last_inside += 1
         if last_inside < 3:
-          allparas.append(["O", paras[i].strip()])
+          allparas.append(["O", paras[i]])
       else:
         if i == 0:
-          allparas.append(["B", paras[i].strip()])
+          allparas.append(["B", paras[i]])
           last_inside = 0
         elif i == len(paras) - 1:
-          allparas.append(["L", paras[i].strip()])
+          allparas.append(["L", paras[i]])
           last_inside = 0
         else:
-          allparas.append(["I", paras[i].strip()])
+          allparas.append(["I", paras[i]])
           last_inside = 0
   return allparas
 

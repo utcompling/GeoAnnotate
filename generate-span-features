@@ -34,23 +34,17 @@ parser.add_argument('--predicted-spans', action='store_true',
 
 args = parser.parse_args()
 
-ranks = "Lieutenant|First Lieutenant|Second Lieutenant|Brigadier|Captain|Major|Colonel|General|Adjutant|Commissioner|Secretary|Assistant|Asst.|Surgeon|Surg.|Chief|Provost|Judge|Acting"
+ranks = r"Lieutenant|Lieut\.|First Lieutenant|Second Lieutenant|Brigadier|Brig\.|Captain|Capt\.|Major|Maj\.|Colonel|Col\.|General|Gen\.|Adjutant|Adjt\.|Commissioner|Com\.|Secretary|Sec\.|Assistant|Asst\.|Surgeon|Surg\.|Chief|Provost|Prov\.|Judge|Acting|Actg\.|Inspector|Insp\.|Commanding|Comdg\.|(A\. )?A\. A\. G\."
 months = "January|February|March|April|May|June|July|August|September|October|November|December|JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER"
-date = r"\[?(%s)\]? ([1-9]|[123][0-9]), 186[0-9]" % months
+date = r"\[?(%s)\]? ([1-9]|[123][0-9]), 186[0-9](\.|- *[0-9].*)" % months
+ending_rank_re = r"(^|, )(%s)([, -].{0,50}?)\.\n" % ranks
 
 def legal_position(i, offset, bp_length):
-  if i + offset < bp_length and i + offset >= 0:
-    return 1
-  else:
-    return 0
+  return i + offset < bp_length and i + offset >= 0
 
 #def check_punc(i, position, bp, punc):
-#  if legal_position(i, position, len(bp)):
-#    #print i, bp[i + position]
-#    if len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == punc:
-#      return 1
-#    else: return 0
-#  else: return 0
+#   #print i, bp[i + position]
+#   return len(bp[i + position][1]) > 0 and bp[i + position][1][-1] == punc
 #
 #def check_period(i, position, bp):
 #  return check_punc(i, position, bp, '.')
@@ -62,32 +56,33 @@ def legal_position(i, offset, bp_length):
 #  return check_punc(i, position, bp, ':')
 
 def first_token(i, position, bp):
-  if legal_position(i, position, len(bp)):
-    if len(bp[i + position][1]) > 0:
-      tokens = text.tokenize(bp[i + position][1])
-      #print tokens
-      j = 0
-      while j < len(tokens):
-        if tokens[j] not in [u',', u'.', u':']:
-          return tokens[j]
-        j = j + 1
-    else: return u"EMPTY"
-  else: return u"NONE"
-  return u"GRAMMAR"
+  if len(bp[i + position][1]) > 0:
+    tokens = text.tokenize(bp[i + position][1])
+    #print tokens
+    j = 0
+    while j < len(tokens):
+      if tokens[j] not in [u',', u'.', u':']:
+        return tokens[j]
+      j = j + 1
+  return u"EMPTY"
 
 def last_token(i, position, bp):
-  if legal_position(i, position, len(bp)):
-    if len(bp[i + position][1]) > 0:
-      tokens = text.tokenize(bp[i + position][1])
-      #print tokens
-      j = len(tokens)-1
-      while j > 0:
-        if tokens[j] not in [u',', u'.', u':']:
-          return tokens[j]
-        j = j - 1
-    else: return u"EMPTY"
-  else: return u"NONE"
-  return u"GRAMMAR"
+  if len(bp[i + position][1]) > 0:
+    tokens = text.tokenize(bp[i + position][1])
+    #print tokens
+    j = len(tokens)-1
+    while j > 0:
+      if tokens[j] not in [u',', u'.', u':']:
+        return tokens[j]
+      j = j - 1
+  return u"EMPTY"
+
+def check_ending_rank(i, position, bp):
+  # Check that we have a rank in a period-ending sentence, and we also
+  # don't have a similar rank in the next two sentences.
+  return (re.search(ending_rank_re, bp[i + position][1]) and
+      not (i + position < len(bp) - 1 and re.search(ending_rank_re, bp[i + position + 1][1])) and
+      not (i + position < len(bp) - 2 and re.search(ending_rank_re, bp[i + position + 2][1])))
 
 def yield_flatten_features(features):
   for feat in features:
@@ -161,21 +156,27 @@ class FeatureVector:
   #Simple Feature Functions return 0 or 1; none currently; previously
   #handled lines ending in period/comma/colon but that's now handled by
   #period_comma_colon()
-  simple_feature_functions = flatten_features([])
+  simple_feature_functions = flatten_features([
+    [0, "rank", check_ending_rank],
+    [1, "rank+1", check_ending_rank],
+    [2, "rank+2", check_ending_rank],
+    [-1, "rank-1", check_ending_rank],
+    [-2, "rank-2", check_ending_rank],
+  ])
 
   #Complex Feature Functions return a string rather than a 0 or 1
   complex_feature_functions = flatten_features([
   [0, "lastString", last_token],
   [-1, "lastString_prev", last_token],
   [0, "firstString", first_token],
-  [-1, "firstString_prev", first_token]
+  [-1, "firstString_prev", first_token],
   ])
 
   re_feature_functions = flatten_features([
-    [0, "PLACE", "HEADQUARTERS|HDQRS|ORDERS|OFFICE|DEPARTMENT|PRISON|CAMP|POST|FORT|HOTEL"],
-    [0, "DATE", r"%s\.?" % date],
-    [0, "capdate", r"^[A-Z][A-Z. ]+, %s\.?" % date],
-    [0, "Numbers", "Numbers [0-9]"],
+    [0, "PLACE", "HEADQUARTERS|HDQRS|ORDERS|OFFICE|DEPARTMENT|PRISON|CAMP|POST|FORT|HOTEL|GUN-?BOAT|STEAM-?BOAT|[ -]HOUSE"],
+    [0, "DATE", r"%s\n" % date],
+    [0, "capdate", r"^[A-Z][A-Z. ]+, %s\n" % date],
+    [0, "Number", "(Numbers?|Nos?\.) [0-9]"],
     [0, "Report of", "Report of"],
     [0, "Inclosure", r"\[.*[Ii]nclosure|[Ii]ndorsement"],
     [0, "salutation", r"(obedient servant|([Vv]ery|[Mm]ost) respectfully|Respectfully).*,"],
@@ -183,7 +184,7 @@ class FeatureVector:
     [0, "with-respect-salutation", r"With .*respect,"],
     [0, "brackets", r"^\[.*\]"],
     [0, "start-brackets", r"^\["],
-    period_comma_colon([0, "rank", r"^(%s)[ -].{0,50}" % ranks]),
+    #period_comma_colon([0, "rank", r"^(%s)[ -].{0,50}" % ranks]),
     period_comma_colon([0, "any", ""], skipbasic=True),
     period_comma_colon([0, "all-caps", r"^[A-Z][A-Z.,' ]+"]),
     period_comma_colon([0, "capsname", r"^([A-Z]+\.?|[A-Z]+\.? [A-Z]\.|[A-Z]\. ?[A-Z]\.) [A-Z]+"]),
@@ -202,10 +203,13 @@ class FeatureVector:
     for bp in biol_paras:
       features = []
       for f in self.simple_feature_functions:
-        if f[-1](i, f[0], biol_paras):
+        if legal_position(i, f[0], len(biol_paras)) and f[-1](i, f[0], biol_paras):
           features.append(f[1])
       for f in self.complex_feature_functions:
-        result = f[-1](i, f[0], biol_paras)
+        if legal_position(i, f[0], len(biol_paras)):
+          result = f[-1](i, f[0], biol_paras)
+        else:
+          result = "NONE"
         features.append(f[1]+u'_'+result)
       features.extend(generate_features(biol_paras, i,
         self.re_feature_functions))
@@ -369,7 +373,7 @@ if args.predicted_spans:
       with open(vol + args.predicted_spans_suffix, 'w') as w:
         first = True
         inside = False
-        for para, pred in zip(allparas, predictions):
+        for pred, para in zip(predictions, allparas):
           if inside and (pred == "B" or pred == "O"):
             w.write("---------------- END SPAN ---------------\n")
             inside = False

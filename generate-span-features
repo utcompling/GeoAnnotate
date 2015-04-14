@@ -9,6 +9,12 @@ parser.add_argument('--simple-features', action='store_true',
     help="Skip features referring to lines other than the current one.")
 parser.add_argument('--spans',
     help="Directory containing spans for training data.")
+parser.add_argument('--training-file',
+    help="File to output containing training data.")
+parser.add_argument('--test-file',
+    help="File to output containing test data.")
+parser.add_argument('--debug', action='store_true',
+    help="Output info to stdout to facilitate debugging feature generation.")
 parser.add_argument('files', nargs='*',
                    help='Files to process')
 
@@ -25,6 +31,12 @@ def read_volume_text():
       print "File name format should be e.g. 001.txt where 001 means volume 1"
     else:
       volume_text[m.group(1)] = open(fn).read()
+
+# If true, ignore outside text that comes at the beginning and end of a file.
+# This is generally a good idea because the spans may not include the whole
+# file and we don't want unmarked spans to overly influence the
+# computation of outside text.
+ignore_bookending_outside_text = True
 
 def read_volume_spans():
   for spanfile in os.listdir(args.spans):
@@ -46,7 +58,7 @@ def read_volume_spans():
       voltext = volume_text[vol]
       ind = 0
       for span in spans:
-        if span[0] > ind:
+        if span[0] > ind and (ind != 0 or not ignore_bookending_outside_text):
           outside_text = voltext[ind:span[0]].strip()
           if outside_text:
             io_spans.append([False, outside_text])
@@ -54,10 +66,11 @@ def read_volume_spans():
         if inside_text:
           io_spans.append([True, inside_text])
         ind = span[1]
-      if ind < len(voltext):
-        outside_text = voltext[ind:].strip()
-        if outside_text:
-          io_spans.append([False, outside_text])
+      if not ignore_bookending_outside_text:
+        if ind < len(voltext):
+          outside_text = voltext[ind:].strip()
+          if outside_text:
+            io_spans.append([False, outside_text])
       volume_spans[vol] = io_spans
 
 def generate_paras(text):
@@ -178,16 +191,55 @@ def generate_features(paras, i):
         features.append(name + "-and-01+1")
   return ' '.join(features)
 
+training_file = None
+if args.training_file:
+  training_file = open(args.training_file, "w")
+test_file = None
+if args.test_file:
+  test_file = open(args.test_file, "w")
+
 read_volume_text()
 read_volume_spans()
-vols = sorted([vol for vol in volume_spans], key=lambda x:int(x))
-for vol in vols:
-  print "Outputting paragraphs for volume %s" % vol
+
+# Output training data
+training_vols = sorted([vol for vol in volume_spans], key=lambda x:int(x))
+first = True
+for vol in training_vols:
   paras = get_biol_paras(vol)
+  print "Processing training paragraphs for volume %s" % vol
+  if training_file and not first:
+    print >>training_file, ""
+  first = False
   for i in xrange(len(paras)):
-    print "-------------- BEGIN PARA: %s ---------------" % paras[i][0]
-    print paras[i][1].strip()
-    print "-------------- END PARA ---------------"
-    print "-------------- FEATURES: %s ---------------" % generate_features(paras, i)
+    features = generate_features(paras, i)
+    if args.debug:
+      print "-------------- BEGIN PARA: %s ---------------" % paras[i][0]
+      print paras[i][1].strip()
+      print "-------------- END PARA ---------------"
+      print "-------------- FEATURES: %s ---------------" % features
+    if training_file:
+      print >>training_file, "%s %s" % (features, paras[i][0])
+if training_file:
+  training_file.close()
 
-
+# Output test data
+test_vols = sorted([vol for vol in volume_text if vol not in volume_spans],
+    key = lambda x:int(x))
+first = True
+for vol in test_vols:
+  paras = [["?", para] for para in generate_paras(volume_text[vol])]
+  print "Processing test paragraphs for volume %s" % vol
+  if test_file and not first:
+    print >>test_file, ""
+  first = False
+  for i in xrange(len(paras)):
+    features = generate_features(paras, i)
+    if args.debug:
+      print "-------------- BEGIN PARA: ---------------"
+      print paras[i][1].strip()
+      print "-------------- END PARA ---------------"
+      print "-------------- FEATURES: %s ---------------" % features
+    if test_file:
+      print >>test_file, "%s" % features
+if test_file:
+  test_file.close()

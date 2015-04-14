@@ -37,7 +37,7 @@ args = parser.parse_args()
 ranks = r"Lieutenant|Lieut\.|First Lieutenant|Second Lieutenant|Brigadier|Brig\.|Captain|Capt\.|Major|Maj\.|Colonel|Col\.|General|Gen\.|Adjutant|Adjt\.|Commissioner|Com\.|Secretary|Sec\.|Assistant|Asst\.|Surgeon|Surg\.|Chief|Provost|Prov\.|Judge|Acting|Actg\.|Inspector|Insp\.|Commanding|Comdg\.|(A\. )?A\. A\. G\."
 months = "January|February|March|April|May|June|July|August|September|October|November|December|JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER"
 date = r"\[?(%s)\]? ([1-9]|[123][0-9]), 186[0-9](\.|- *[0-9].*)" % months
-ending_rank_re = r"(^|, )(%s)([, -].{0,50}?)\.\n" % ranks
+ending_rank_re = r"(^|, )(%s)([, -].{0,70}?)\.\n" % ranks
 
 def legal_position(i, offset, bp_length):
   return i + offset < bp_length and i + offset >= 0
@@ -373,7 +373,29 @@ if args.predicted_spans:
       with open(vol + args.predicted_spans_suffix, 'w') as w:
         first = True
         inside = False
-        for pred, para in zip(predictions, allparas):
+        zipped = [[x, y] for x, y in zip(predictions, allparas)]
+
+        # Try to manually adjust the span end to handle an addressee at the
+        # end of the letter
+        for i in xrange(len(zipped)):
+          pred, para = zipped[i]
+          if pred == "L":
+            if i < len(zipped) - 2 and re.search(ending_rank_re, zipped[i + 2][1]):
+              zipped[i][0] = "I"
+              zipped[i+1][0] = "I"
+              zipped[i+2][0] = "L"
+              if i < len(zipped) - 3:
+                if zipped[i+3][0] in ["I", "L"]:
+                  zipped[i+3][0] = "B"
+            elif i < len(zipped) - 1 and re.search(ending_rank_re, zipped[i + 1][1]):
+              zipped[i][0] = "I"
+              zipped[i+1][0] = "L"
+              if i < len(zipped) - 2:
+                if zipped[i+2][0] in ["I", "L"]:
+                  zipped[i+2][0] = "B"
+
+        inside = False
+        for pred, para in zipped:
           if inside and (pred == "B" or pred == "O"):
             w.write("---------------- END SPAN ---------------\n")
             inside = False

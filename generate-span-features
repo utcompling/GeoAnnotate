@@ -15,14 +15,22 @@ parser.add_argument('--spans',
 parser.add_argument('--training-file',
     default='articleseg_feats.txt',
     help="File to output containing training data.")
-parser.add_argument('--test-file',
-    help="File to output containing test data.")
+parser.add_argument('--test-suffix',
+    default='.feats',
+    help="Suffix to use for files containing test data.")
+parser.add_argument('--predicted-spans-suffix',
+    default='.predicted-spans',
+    help="Suffix to use for files containing predicted spans.")
 parser.add_argument('--debug', action='store_true',
     help="Output info to stdout to facilitate debugging feature generation.")
-parser.add_argument('--files',
+parser.add_argument('--text',
     help='Directory containing volume text files')
+parser.add_argument('--predictions',
+    help="Directory containing MALLET predictions")
 parser.add_argument('--featurize-no-label', action='store_true',
-    help="outputs a featurized version of each file without labels")
+    help="Output a featurized version of each file without labels")
+parser.add_argument('--predicted-spans', action='store_true',
+    help="Combine text with predictions to generate spans")
 
 args = parser.parse_args()
 
@@ -148,10 +156,6 @@ def generate_features(paras, i, featdescs):
   return features
  
 class FeatureVector:
-
-  
-  vectors = []
-
   #feature_set elements = [position, feature_name, feature_function]
 
   #Simple Feature Functions return 0 or 1; none currently; previously
@@ -189,12 +193,12 @@ class FeatureVector:
     period_comma_colon([0, "longline", r"^.{111,}"]),
   ])
 
-  def __init__(self, biol_paras=[]):
-    self.vectors = []
-    self.add_vol(biol_paras)
+  def __init__(self):
+    pass
 
   def add_vol(self, biol_paras):
     i = 0
+    vectors = []
     for bp in biol_paras:
       features = []
       for f in self.simple_feature_functions:
@@ -205,31 +209,35 @@ class FeatureVector:
         features.append(f[1]+u'_'+result)
       features.extend(generate_features(biol_paras, i,
         self.re_feature_functions))
-      self.vectors.append([biol_paras[i][0], biol_paras[i][1], features])
+      vectors.append([biol_paras[i][0], biol_paras[i][1], features])
       i += 1
-    #print self.vectors
+    #print vectors
+    return vectors
 
-  def write_mallet_train(self, outfile):
+  def write_mallet_train(self, outfile, vectorses):
     with open(outfile, 'w') as w:
-      for v in self.vectors:
-        w.write(u' '.join(v[-1]) + ' ' + v[0] + '\n')
+      for vectors in vectorses:
+        for v in vectors:
+          w.write(u' '.join(v[-1]) + ' ' + v[0] + '\n')
+        w.write('\n')
 
-  def write_mallet_test(self, outfile):
+  def write_mallet_test(self, outfile, vectors):
     with open(outfile, 'w') as w:
-      for v in self.vectors:
+      for v in vectors:
         w.write(u' '.join(v[-1]) + '\n')
 
 volume_spans = {}
 volume_text = {}
+volume_predictions = {}
 
 def read_volume_text():
-  for fn in os.listdir(args.files):
+  for fn in os.listdir(args.text):
     m = re.match("(?:.*/)?0*([1-9][0-9]*).txt", fn)
     if not m:
       print "Unable to parse filename: %s" % fn
       print "File name format should be e.g. 001.txt where 001 means volume 1"
     else:
-      volume_text[m.group(1)] = open(os.path.join(args.files, fn)).read()
+      volume_text[m.group(1)] = open(os.path.join(args.text, fn)).read()
 
 # If true, ignore outside text that comes at the beginning and end of a file.
 # This is generally a good idea because the spans may not include the whole
@@ -272,6 +280,17 @@ def read_volume_spans():
             io_spans.append([False, outside_text])
       volume_spans[vol] = io_spans
 
+def read_volume_predictions():
+  for fn in os.listdir(args.predictions):
+    m = re.match("(?:.*/)?0*([1-9][0-9]*).predictions", fn)
+    if not m:
+      print "Unable to parse filename: %s" % fn
+      print "File name format should be e.g. 1.predictions for volume 1"
+    else:
+      volume_predictions[m.group(1)] = (
+          [x.strip() for x in re.split("\n", open(os.path.join(args.predictions, fn)).read().strip())]
+      )
+
 def generate_paras(text):
   for para in re.split("\n\n", text.strip()):
     lines = [line.strip() for line in re.split("\n", para)]
@@ -304,27 +323,63 @@ if args.train:
   read_volume_spans()
   vols = sorted([vol for vol in volume_spans], key=lambda x:int(x))
   FV = FeatureVector()
+  vectorses = []
   for vol in vols:
-    print "Outputting paragraphs for volume %s" % vol
+    print "Processing volume %s" % vol
     paras = get_biol_paras(vol)
     #allparas.append(paras)
-    FV.add_vol(paras)
-  for v in FV.vectors:
-    print v
-  FV.write_mallet_train(args.training_file)
+    vectors = FV.add_vol(paras)
+    if args.debug:
+      for v in vectors:
+        print v
+    vectorses.append(vectors)
+  FV.write_mallet_train(args.training_file, vectorses)
+
 if args.featurize_no_label:
   print "Begin Featurizing"
   read_volume_text()
-  print "Done reading vol text"
-  for vol in volume_text:
+  print "Done reading volume text"
+  vols = sorted([vol for vol in volume_text], key=lambda x:int(x))
+  for vol in vols:
     FV = FeatureVector()
     allparas = []
     for line in generate_paras(volume_text[vol]):
-      allparas.append(['NONE', line.strip()])
+      allparas.append(['NONE', line])
     print vol
-    FV.add_vol(allparas)
+    vectors = FV.add_vol(allparas)
     #print [para for para in generate_paras(volume_text[vol])][0]
-    #print FV.vectors[0]
-    FV.write_mallet_test(str(vol)+".feats")
+    #print vectors[0]
+    FV.write_mallet_test(str(vol)+args.test_suffix, vectors)
 
-#print paras
+if args.predicted_spans:
+  print "Reading volume text"
+  read_volume_text()
+  print "Done reading volume text"
+  print "Reading volume predictions"
+  read_volume_predictions()
+  print "Done reading volume predictions"
+  vols = sorted([vol for vol in volume_predictions], key=lambda x:int(x))
+  for vol in vols:
+    allparas = [para for para in generate_paras(volume_text[vol])]
+    predictions = volume_predictions[vol]
+    if len(allparas) != len(predictions):
+      print "WARNING: %s paragraphs but %s predictions, skipping volume %s" % (
+          len(allparas), len(predictions), vol)
+    else:
+      with open(vol + args.predicted_spans_suffix, 'w') as w:
+        first = True
+        inside = False
+        for para, pred in zip(allparas, predictions):
+          if inside and (pred == "B" or pred == "O"):
+            w.write("---------------- END SPAN ---------------\n")
+            inside = False
+          if not first:
+            w.write("\n")
+          first = False
+          if pred == "B":
+            w.write("---------------- BEGIN SPAN ---------------\n")
+            inside = True
+          w.write(para)
+        if inside:
+            w.write("---------------- END SPAN ---------------\n")
+

@@ -272,7 +272,7 @@ if args.train:
     FV.add_vol(paras)
   for v in FV.vectors:
     print v
-  FV.write_mallet(args.training_file)
+  FV.write_mallet_train(args.training_file)
 if args.featurize_no_label:
   print "Begin Featurizing"
   read_volume_text()

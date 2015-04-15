@@ -4,6 +4,11 @@ import argparse
 import os
 import re
 
+# This is for processing War of the Rebellion HTML as downloaded using
+# wget, where there's a separate file for each page and each volume is
+# in its own directory, e.g. a directory '001' for volume 1, with files
+# '0100' through '0199' for the respective pages (and possibly others,
+# which will be ignored).
 parser = argparse.ArgumentParser(description='Process War of The Rebellion HTML')
 parser.add_argument('dirs', nargs='*',
                    help='directories to process')

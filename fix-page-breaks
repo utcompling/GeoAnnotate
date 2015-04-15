@@ -15,11 +15,24 @@ for file in args.files:
   # Remove empty pages
   pages = [x for x in pages if x]
   for i in xrange(0, len(pages) - 1):
-    m = re.match("(.*?\n)(\n*(?: *[0-9]+|S) R R( *-+ *[^\n]*)?\n+)$", pages[i], re.S)
+    # Remove extraneous blank lines
+    pages[i] = re.sub("\n\n\n+", "\n\n", pages[i])
+    # Undo HTML entities
+    pages[i] = re.sub("&amp;", "&", pages[i])
+    pages[i] = re.sub("&lt;", "<", pages[i])
+    pages[i] = re.sub("&gt;", ">", pages[i])
+    # Do the following a second time to handle cases of
+    # &amp;amp;, which are common
+    pages[i] = re.sub("&amp;", "&", pages[i])
+    m = re.match(r"^( *\[*CHAP\. [A-Z]+\.\]* *\n\n?)(.*)", pages[i], re.S)
     if m:
-      pages[i] = m.group(1)
+      pages[i] = m.group(2)
+      print "Removed CHAP heading on page %s:\n[%s]\n" % (i, m.group(1))
+    m = re.match("(.*?)(\n?(?: *[0-9]+|S) *(?:R R(?: *[-_VY]+ *[^\n]*)?|R *-+ *[^\n]*)\n)(.*)$", pages[i], re.S)
+    if m:
+      pages[i] = m.group(1) + m.group(3)
       print "Removed R R notation on page %s:\n[%s]\n" % (i, m.group(2))
-    m = re.match("(.*?\n)(\n* *------+\n( *[*+#][^\n]*\n|\n)* *-------+\n+)$", pages[i], re.S)
+    m = re.match(r"(.*?\n)(\n* *------+\n( *(?:[*+#@$|^\\/&~=>!?]|[abc] |[abc][A-Z])[^\n]*\n|\n)* *-------+\n+(?:[*+#@$|^\\/&~=>!?] *[A-Z][^\n]*\n|\n)*)$", pages[i], re.S)
     if m:
       pages[i] = m.group(1)
       print "Removed footnote on page %s:\n[%s]\n" % (i, m.group(2))
@@ -27,7 +40,7 @@ for file in args.files:
     if m:
       pages[i] = m.group(1)
       print "Removed MAP notation on page %s:\n[%s]\n" % (i, m.group(2))
-    while pages[i][-1] == "\n":
+    while pages[i] and pages[i][-1] == "\n":
       pages[i] = pages[i][0:-1]
     if "\n" not in pages[i]:
       lastlinelen = len(pages[i])
@@ -38,20 +51,22 @@ for file in args.files:
     shortline = lastlinelen < 60
     join = False
     hyphenjoin = False
-    if pages[i][-1] == '-' and pages[i][-2].islower():
+    if not pages[i]:
+      continue
+    if len(pages[i]) >= 2 and pages[i][-1] == '-' and pages[i][-2].islower():
       if shortline:
         msg = "PAGEBREAK SHORT-LINE HYPHEN, NOT JOINED"
       else:
         msg = "PAGEBREAK HYPHEN-JOINED"
         hyphenjoin = True
         join = True
-    elif pages[i + 1][0].islower():
+    elif pages[i + 1] and pages[i + 1][0].islower():
       if shortline:
         msg = "PAGEBREAK SHORT-LINE NEXT PAGE STARTS LOWERCASE, NOT JOINED"
       else:
         msg = "PAGEBREAK NEXT PAGE STARTS LOWERCASE, JOINED"
         join = True
-    elif pages[i][-1] == '.' and pages[i][-2].isupper() and pages[i][-3] in ['.', ' ']:
+    elif len(pages[i]) >= 3 and pages[i][-1] == '.' and pages[i][-2].isupper() and pages[i][-3] in ['.', ' ']:
       if shortline:
         msg = "PAGEBREAK SHORT-LINE ENDS WITH ABBREVIATION PERIOD, NOT JOINED"
       else:
@@ -59,9 +74,9 @@ for file in args.files:
         join = True
     elif pages[i][-1] == '.':
       msg = "PAGEBREAK ENDS PERIOD, NOT JOINED"
-    elif pages[i][-1] == '*' and pages[i][-2] == '.':
+    elif len(pages[i]) >= 2 and pages[i][-1] == '*' and pages[i][-2] == '.':
       msg = "PAGEBREAK ENDS PERIOD STAR, NOT JOINED"
-    elif pages[i][-1] == '"' and pages[i][-2] == '.':
+    elif len(pages[i]) >= 2 and pages[i][-1] == '"' and pages[i][-2] == '.':
       msg = "PAGEBREAK ENDS PERIOD QUOTE, NOT JOINED"
     elif pages[i][-1] == ':':
       msg = "PAGEBREAK ENDS COLON, NOT JOINED"

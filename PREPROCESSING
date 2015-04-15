@@ -1,0 +1,76 @@
+Process to generate War of the Rebellion files:
+
+1. Text comes in the form of separate HTML pages, e.g. 001/0100 - 001/0199,
+   in the following directory:
+
+    ~/devel/war-of-the-rebellion/ehistory.osu.edu/books/official-records
+
+2. Run process-wotr-html-downloaded on each directory:
+
+   for x in 0*; do if [ -d "$x" ]; then ~/devel/GeoAnnotate/process-wotr-html-downloaded $x; fi done
+
+   This generates e.g. 001.html and 001.txt.
+
+   (Alternatively, use process-wotr-html-combined on the HTML files.)
+
+3. Copy each *.txt file to *.txt.orig:
+
+   for x in *.txt; do cp $x $x.orig; done
+
+4. Go through each *.txt file, removing trailing spaces:
+
+   perl -pi -e 's/ +$//' *.txt
+
+5. Go through each *.txt file by hand, looking for occurrences of MAP and
+   removing them, fixing up the paragraphs as necessary. (FIXME, this should
+   probably be done automatically.)
+
+6. Also in each *.txt file, delete cases where you have "Page ###" at a
+   page break; mostly happens in volume 004.
+
+7. Also check for and fix up extraneous text breaks, e.g. in volume 019, 021;
+   look for "CHAP.". Text of this sort at the beginning of a page break will
+   automatically be handled.
+
+8. Other fixups:
+
+   gr 'PAGEs ' 'pages ' *.txt
+   gr 'PAGE([a-z])' 'page $1' *.txt
+
+9. Run get-description on each HTML file:
+
+   ~/devel/GeoAnnotate/get-description *.html
+
+   This generates *.desc files.
+
+   (At this point, I removed newlines from the end of each *.desc file using
+   perl, and edited some of the descriptions by hand, but this entire
+   step doesn't need to be repeated.)
+
+10. Run fix-page-breaks on each *.txt file:
+
+   ~/devel/GeoAnnotate/fix-page-breaks *.txt
+
+   This generates *.txt.joined-pagebreak files.
+
+11. Copy each *.txt.joined-pagebreak file to *.txt.joined-pagebreak.orig.
+
+12. Go through and delete footnotes and extraneous R- lines in each
+    *.txt.joined-pagebreak file, cleaning up the surrounding text, grepping
+    as follows:
+
+    grep 'R *-' *.joined-pagebreak |m
+    grep -C 3 '[-]-----------' *.txt.joined-pagebreak |m
+
+13. Copy each *.txt.joined-pagebreak file to
+    *.txt.joined-pagebreak.remove-preface. Edit the latter files and remove
+    the preface from each one, generally up to where it says "CORRESPONDENCE"
+    or "REPORTS". Beware of the fact that sometimes there is a letter or a
+    few letters (sometimes partial) stuck at the beginning before the preface.
+
+14. Copy each *.txt.joined-pagebreak.remove-preface file to *.txt.joined.
+
+15. Remove the pagebreaks as follows:
+
+    gr '\nPAGEBREAK.*\n' '' *.txt.joined
+    gr '\Z' '\n' *.txt.joined

@@ -22,6 +22,8 @@ for file in args.files:
   start = False
   lines = []
   for line in open(file, "r"):
+    if start:
+      lines.append(line)
     if start and re.match('.*</div>', line):
       start = False
       text = ''.join(lines)
@@ -31,13 +33,11 @@ for file in args.files:
       text = text.replace("<br />", "\n")
       text = text.replace("<br>", "\n")
       text = re.sub("<[^>]*>", "", text)
-      if text.endswith("\n\n"):
+      while text.endswith("\n\n"):
         text = text[0:-1]
       outtext.write(text)
       outtext.write("PAGEBREAK\n")
       lines = []
-    if start:
-      lines.append(line)
     if re.match('.*<div class="field-item ', line):
       start = True
   outtext.close()

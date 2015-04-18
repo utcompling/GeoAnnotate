@@ -42,8 +42,10 @@ $(document).ready(function() {
                     " ctrlKey=" + e.ctrlKey +
                     " metaKey=" + e.metaKey +
                     " shiftKey=" + e.shiftKey)
+        // Allow Cmd + z and Cmd + c
+        var allowableKey = e.metaKey && (e.keyCode == 90 || e.keyCode == 67)
         // Allow arrow keys, home, end, pgup, pgdn
-        if (e.keyCode < 33 || e.keyCode > 40)
+        if (!allowableKey && (e.keyCode < 33 || e.keyCode > 40))
             e.preventDefault()
         if (!e.altKey && !e.ctrlKey && !e.metaKey) {
             keyCodeActions.forEach(function(action) {
@@ -52,6 +54,21 @@ $(document).ready(function() {
             })
         }
     })
+
+    // Remove selection CSS and active geometry when outside span
+    $("#col2text").on("mouseup", function(e) {
+        //console.log("Mouse Clicked in col2text: " + e.button)
+        if (e.button == 0){
+            if (getSelectionNodes().length == 0){
+                if (lastSelectedNode){
+                    removeSelectCSS(lastSelectedNode);
+                    destroyMapFeatures();
+                    lastSelectedNode = null;
+                }
+            }
+        }
+    })
+
 } );
 
 function getSelectionNodes() {
@@ -427,6 +444,8 @@ function removeAnnotationsUponLoad() {
 }
 
 function removeAnnotation() {
+    removeSelectCSS(lastSelectedNode)
+    setSelectionToNode(lastSelectedNode)
     var selectionRange = getSelectionRange()
     if (overlapsAnnotation(selectionRange, true, annotationClasses))
         logMessage("Selection contains part of an annotation")
@@ -448,11 +467,23 @@ function removeAnnotation() {
     }
 }
 
+function addSelectCSS(node){
+    node.setAttribute("select", "1")
+}
+
+function removeSelectCSS(node){
+    node.removeAttribute("select")
+}
+
 // Clicked on an annotation. Set up the map to display the annotation's
 // map features and add to recent locations.
 function spanClick(element) {
-    setSelectionToNode(element)
+    //setSelectionToNode(element)
+    if (lastSelectedNode) {
+        removeSelectCSS(lastSelectedNode)
+    }
     lastSelectedNode = element
+    addSelectCSS(lastSelectedNode)
     var jsonfeats = getStoredMapFeatures(element)
     console.log("Click on element with JSON " + jsonfeats)
     displayMapFeatures(jsonfeats)

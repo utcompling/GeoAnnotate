@@ -34,7 +34,7 @@ parser.add_argument('--predicted-spans', action='store_true',
 
 args = parser.parse_args()
 
-ranks = r"Lieutenant|Lieut\.|First Lieutenant|Second Lieutenant|Brigadier|Brig\.|Captain|Capt\.|Major|Maj\.|Colonel|Col\.|General|Gen\.|Adjutant|Adjt\.|Commissioner|Com\.|Secretary|Sec\.|Assistant|Asst\.|Surgeon|Surg\.|Chief|Provost|Prov\.|Judge|Acting|Actg\.|Inspector|Insp\.|Commanding|Comdg\.|Commander|(A\. )?A\. A\. G\."
+ranks = r"\b(Lieutenant|Lieut\.|First Lieutenant|Second Lieutenant|Brigadier|Brig\.|Captain|Capt\.|Major|Maj\.|Colonel|Col\.|General|Gen\.|Adjutant|Adjt\.|Commissioner|Com\.|Commissary|Secretary|Sec\.|Assistant|Asst\.|Surgeon|Surg\.|Chief|Provost|Prov\.|Judge|Acting|Actg\.|Agent|Inspector|Insp\.|Commanding|Comdg\.|Commander|Governor|Gov\.|President|Prest\.|Treasurer|State Treasurer|Chairman|Attorney|County Judge|Counsel|Quartermaster|Brevet|(A\. )?A\. A\. G\.)\b"
 months = "January|February|March|April|May|June|July|August|September|October|November|December|JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER"
 date = r"\[?(%s)\]? ([1-9]|[123][0-9]), 186[0-9](\.|- *[0-9].*)" % months
 ending_rank_re = r"(^|, )(%s)([, -].{0,70}?)\.\n" % ranks
@@ -172,13 +172,40 @@ class FeatureVector:
   [-1, "firstString_prev", first_token],
   ])
 
+  # Examples with or without a lowercase place in the middle:
+  #
+  # 20 AMITY PLACE, New York, July 19, 1863.
+  # JOHNSON'S ISLAND, July 19, 1863.
+  #
+  # More examples (in this case, split into two lines):
+  #
+  # HEADQUARTERS,\nCape Girardeau, Mo., September 1, 1861.
+  # HEADQUARTERS U. S. FORCES,\nCairo, Ill., September 2, 1861.
+  # HDQRS. DISTRICT OF SOUTHEASTERN MISSOURI,\nCairo, September 3, 1861.
+  # HEADQUARTERS EXPEDITION TO BELMONT,\nBelmont, Mo., September 2, 1861-6 p. m.
+  # HEADQUARTERS MIDDLE DEPARTMENT, Numbers 197.\nBaltimore, MD., July 22, 1863.
+  # HEADQUARTERS DEPARTMENT OF S. C., GA., AND FLA.,\nCharleston, S. C., July 23, 1863.
+  #
+  # Still to handle: Spread over two paras:
+  #
+  # U. S. GUNBOAT TAYLOR,
+  #
+  # Near Cairo, September 4, 1861.
+  #
+  cap_place = r"([0-9]+ )?[A-Z][A-Z.,' ]+"
+  lc_place = r"[A-Z][a-z'.]+\.?( [A-Z][a-z'.]+)*"
+  number_num = r"(Numbers?|Nos?\.) [0-9]+"
+  opt_number_num = r"( %s[,.])?" % number_num
+  lc_state_abbrev = r"((A-Z]\. )?[A-Z][A-Za-z]{1,5}\.|[A-Z]\. *[A-Z]\.)"
+
   re_feature_functions = flatten_features([
-    [0, "PLACE", "HEADQUARTERS|HDQRS|ORDERS|OFFICE|DEPARTMENT|PRISON|CAMP|POST|FORT|HOTEL|GUN-?BOAT|STEAM-?BOAT|[ -]HOUSE"],
+    [0, "PLACE", r"\b(HEADQUARTERS|HDQRS|ORDERS|OFFICE|DEPARTMENT|PRISON|CAMP|POST|FORT|HOTEL|GUN-?BOAT|STEAM-?BOAT|STEAMER|HOUSE|STATION|NEAR|BATTLE-FIELD|(IN|ON) (THE )?FIELD|ON BOARD)\b"],
     [0, "DATE", r"%s\n" % date],
-    [0, "capdate", r"^[A-Z][A-Z. ]+, %s\n" % date],
-    [0, "Number", "(Numbers?|Nos?\.) [0-9]"],
+    [0, "place-date", r"^%s,(%s[ \n]%s(, %s)?,)?[ \n]%s\n" % (cap_place, opt_number_num, lc_place, lc_state_abbrev, date)],
+    [0, "Number", number_num],
     [0, "Report of", "Report of"],
-    [0, "Inclosure", r"\[.*[Ii]nclosure|[Ii]ndorsement"],
+    [0, "Indorsement", r"\[.*[Ii]ndorsement"],
+    [0, "Inclosure", r"\[.*[Ii]nclosure"],
     [0, "salutation", r"(obedient servant|([Vv]ery|[Mm]ost) respectfully|Respectfully).*,"],
     [0, "i-salutation", "(I am|I have the honor).*(obedient servant|respectfully).*,"],
     [0, "with-respect-salutation", r"With .*respect,"],
@@ -351,6 +378,9 @@ if args.featurize_no_label:
       allparas.append(['NONE', line])
     print vol
     vectors = FV.add_vol(allparas)
+    if args.debug:
+      for v in vectors:
+        print v
     #print [para for para in generate_paras(volume_text[vol])][0]
     #print vectors[0]
     FV.write_mallet_test(str(vol)+args.test_suffix, vectors)

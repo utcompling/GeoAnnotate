@@ -16,18 +16,31 @@ parser.add_argument('--output',
 parser.add_argument('--output-suffix',
     default='.txt',
     help="Output suffix to add to input files to form output file names.")
+parser.add_argument('--count', action="store_true",
+    help="Output counts of spans seen.")
 
 args = parser.parse_args()
 
-if not os.path.exists(args.output):
-  os.makedirs(args.output)
-with open(args.output, "w") as of:
+def process_files(of):
   for fn in os.listdir(args.input):
-    print fn
+    print fn,
     text = open(os.path.join(args.input, fn)).read()
+    num_handled_spans = 0
     spanno = 1
     for span in re.finditer(r'^-----+ BEGIN SPAN -----+$(.*?)^-----+ END SPAN -----+$', text, re.M | re.S):
       spantext = span.group(1)
       if not args.filter_regex or re.search(args.filter_regex, spantext):
-        of.write("%s.%s span %s\n" % (fn, spanno, spantext.strip().replace("\n", " ")))
+        if of:
+          of.write("%s.%s span %s\n" % (fn, spanno, spantext.strip().replace("\n", " ")))
+        num_handled_spans += 1
       spanno += 1
+    if args.count:
+      print "%s spans" % num_handled_spans
+
+if args.output:
+  if not os.path.exists(args.output):
+    os.makedirs(args.output)
+  with open(args.output, "w") as of:
+    process_files(of)
+else:
+  process_files(None)

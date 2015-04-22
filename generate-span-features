@@ -9,15 +9,20 @@ import sys
 parser = argparse.ArgumentParser(description='Generate features for finding article spans in War of The Rebellion text')
 parser.add_argument('--simple-features', action='store_true',
     help="Skip features referring to lines other than the current one.")
-parser.add_argument('--train', action='store_true', help="Add --train flag if running in train mode")
+parser.add_argument('--train', action='store_true', help="Generate Mallet training data.")
 parser.add_argument('--spans',
     help="Directory containing spans for training data.")
 parser.add_argument('--training-file',
     default='articleseg_feats.txt',
     help="File to output containing training data.")
-parser.add_argument('--test-suffix',
+parser.add_argument('--predict-dir',
+    default='mallet-predict',
+    help="Directory in which to output Mallet prediction data.")
+parser.add_argument('--predict-suffix',
     default='.feats',
-    help="Suffix to use for files containing test data.")
+    help="Suffix to use for files containing Mallet prediction data.")
+parser.add_argument('--predicted-spans-dir',
+    help="Directory in which to output predicted spans.")
 parser.add_argument('--predicted-spans-suffix',
     default='.predicted-spans',
     help="Suffix to use for files containing predicted spans.")
@@ -27,8 +32,8 @@ parser.add_argument('--text',
     help='Directory containing volume text files')
 parser.add_argument('--predictions',
     help="Directory containing MALLET predictions")
-parser.add_argument('--featurize-no-label', action='store_true',
-    help="Output a featurized version of each file without labels")
+parser.add_argument('--predict', action='store_true',
+    help="Generate Mallet prediction data.")
 parser.add_argument('--predicted-spans', action='store_true',
     help="Combine text with predictions to generate spans")
 
@@ -366,11 +371,13 @@ if args.train:
     vectorses.append(vectors)
   FV.write_mallet_train(args.training_file, vectorses)
 
-if args.featurize_no_label:
+if args.predict:
   print "Begin Featurizing"
   read_volume_text()
   print "Done reading volume text"
   vols = sorted([vol for vol in volume_text], key=lambda x:int(x))
+  if not os.path.exists(args.predict_dir):
+    os.makedirs(args.predict_dir)
   for vol in vols:
     FV = FeatureVector()
     allparas = []
@@ -383,7 +390,7 @@ if args.featurize_no_label:
         print v
     #print [para for para in generate_paras(volume_text[vol])][0]
     #print vectors[0]
-    FV.write_mallet_test(str(vol)+args.test_suffix, vectors)
+    FV.write_mallet_test(args.predict_dir + "/" + str(vol) + args.predict_suffix, vectors)
 
 if args.predicted_spans:
   print "Reading volume text"
@@ -393,6 +400,8 @@ if args.predicted_spans:
   read_volume_predictions()
   print "Done reading volume predictions"
   vols = sorted([vol for vol in volume_predictions], key=lambda x:int(x))
+  if not os.path.exists(args.predicted_spans_dir):
+    os.makedirs(args.predicted_spans_dir)
   for vol in vols:
     allparas = [para for para in generate_paras(volume_text[vol])]
     predictions = volume_predictions[vol]
@@ -400,7 +409,7 @@ if args.predicted_spans:
       print "WARNING: %s paragraphs but %s predictions, skipping volume %s" % (
           len(allparas), len(predictions), vol)
     else:
-      with open(vol + args.predicted_spans_suffix, 'w') as w:
+      with open(args.predicted_spans_dir + "/" + vol + args.predicted_spans_suffix, 'w') as w:
         first = True
         inside = False
         zipped = [[x, y] for x, y in zip(predictions, allparas)]

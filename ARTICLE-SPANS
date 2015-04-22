@@ -1,0 +1,40 @@
+To generate article spans:
+
+First, you need the following:
+
+1. Text of pages 100-200 of all volumes of War of the Rebellion, e.g. in
+   'wotr-text-100'. This should contain only the '*.txt.joined' files
+   (use symlinks if necessary).
+2. Text of all pages of all volumes of War of the Rebellion, e.g. in
+   'wotr-text'. This should contain only the '*.txt.joined' files
+   (use symlinks if necessary).
+3. Files containing docgeo spans, e.g. in 'docgeo-spans'.
+
+Then:
+
+1. Generate Mallet training data.
+
+generate-span-features --spans docgeo-spans --text wotr-text-100 --train
+
+This generates a file 'articleseg_feats.txt' containing Mallet training data.
+
+2. Train Mallet.
+
+java -cp /Users/benwing/devel/mallet-2.0.7/class:/Users/benwing/devel/mallet-2.0.7/lib/mallet-deps.jar cc.mallet.fst.SimpleTagger --train true --model-file mallet.model articleseg_feats.txt
+
+This uses 'articleseg_feats.txt' to train a model, stored in 'mallet.model'.
+
+3. Generate features for the full War of the Rebellion text.
+
+generate-span-features --text wotr-text --predict-dir mallet-predict --predict
+
+4. Run Mallet in prediction mode.
+
+md mallet-predictions
+cd mallet-predict
+for x in *.feats; do echo $x; java -cp /Users/benwing/devel/mallet-2.0.7/class:/Users/benwing/devel/mallet-2.0.7/lib/mallet-deps.jar cc.mallet.fst.SimpleTagger --model-file ../mallet.model $x >! ../mallet-predictions/`basename $x .feats`.predictions; done
+cd ..
+
+5. Combine the predictions and text to generate predicted spans.
+
+generate-span-features --text wotr-text --predictions mallet-predictions --predicted-spans-dir wotr-spans --predicted-spans

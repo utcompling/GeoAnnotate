@@ -34,8 +34,9 @@ $(document).ready(function() {
     $("#col2text").on("cut paste", function(e) {
         e.preventDefault()
     })
+
     // Prevent changes in a content-editable div
-    $("#col2text").on("keydown", function(e) {
+    $("#col2text").get(0).addEventListener("keydown", function(e) {
         e = e || window.event;
         console.log("Key pressed: keyCode=" + e.keyCode +
                     " altKey=" + e.altKey +
@@ -53,7 +54,7 @@ $(document).ready(function() {
                     action.action()
             })
         }
-    })
+    }, true)
 
     // Remove selection CSS and active geometry when outside span
     $("#col2text").on("mouseup", function(e) {

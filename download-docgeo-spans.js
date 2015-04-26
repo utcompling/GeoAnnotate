@@ -18,6 +18,9 @@ function failure(op, error) {
 
 // From http://stackoverflow.com/questions/11944932/how-to-download-a-file-with-node-js
 var download = function(url, dest, cb) {
+  if (fs.existsSync(dest)) {
+    console.log("WARNING: File " + dest + " already exists!")
+  }
   var file = fs.createWriteStream(dest)
   var request = http.get(url, function(response) {
     response.pipe(file)

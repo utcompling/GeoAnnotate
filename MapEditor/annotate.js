@@ -214,6 +214,7 @@ function httpGet(theUrl, callback)
 
 function loadVolumeText(vol, spansObject) {
     removeAnnotationsUponLoad()
+    logMessage("Loading annotations ...")
     selvol = vol
     var query = new Parse.Query(VolTextObject)
     query.equalTo("vol", vol)
@@ -229,6 +230,8 @@ function loadVolumeText(vol, spansObject) {
                     // loadAnnotations(results)
                     // loadAnnotationsXML(results)
                     loadVolumeAnnotations(results2)
+                } else {
+                    logMessage("No annotations in volume for this annotator")
                 }
             });
         })

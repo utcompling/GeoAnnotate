@@ -18,7 +18,8 @@ for dir in args.dirs:
   outhtml = open(dir + ".html", "w")
   outtext = open(dir + ".txt", "w")
   for file in os.listdir(dir):
-    if re.match("01[0-9][0-9]$", file):
+    #if re.match("01[0-9][0-9]$", file):
+    if re.match("[0-9][0-9][0-9][0-9]$", file):
       start = False
       title = ""
       lines = []

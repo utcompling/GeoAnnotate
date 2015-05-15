@@ -100,7 +100,7 @@ function loadVolumeAnnotations(results) {
 }
 
 // Save annotations in a serialized format.
-function saveVolumeAnnotations() {
+function saveVolumeAnnotations(successcb) {
     // Fetch annotations
     var annotations = getAnnotations([annotateClass])
     // Convert to an array of serialized annotations in the form "START-END".
@@ -126,15 +126,17 @@ function saveVolumeAnnotations() {
     ).then(savesuccess(function() {
         annotationChanges = 0
         logMessage("Saved " + annotations.length + " annotations")
+        successcb()
     }),
         savefailure("saving new or updating existing entry"))
 }
 
 // Called from HTML. Save annotations. If saved successfully, reset list of
 // article changes.
-function saveAnnotations() {
+function saveAnnotations(successcb) {
     function success() {
         annotationChanges = 0
+        successcb()
     }
     if (annotUser != "Default") {
         // saveAnnotationsByChangeSet(success)

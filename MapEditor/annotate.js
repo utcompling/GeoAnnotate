@@ -282,9 +282,10 @@ function checkVol(row, tableSelector, spansObject) {
                     modal: true,
                     buttons: {
                         "Yes": function() {
-                            saveAnnotations()
-                            loadVolumeText(newvol, spansObject)
-                            selectNewRow()
+                            saveAnnotations(function() {
+                                loadVolumeText(newvol, spansObject)
+                                selectNewRow()
+                            })
                             closeDialog(this)
                         },
                         "No": function() {
@@ -294,7 +295,6 @@ function checkVol(row, tableSelector, spansObject) {
                         },
                         "Cancel": function() {
                             logMessage("Canceled")
-                            console.log("FIXME: We should set the visibly selected volume to the old one")
                             closeDialog(this)
                         }
                     }

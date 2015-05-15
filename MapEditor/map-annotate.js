@@ -338,7 +338,7 @@ function zoomFeatures() {
 }
 
 // Save annotations in a serialized format.
-function saveVolumeAnnotations() {
+function saveVolumeAnnotations(successcb) {
     // Fetch annotations
     var annotations = getAnnotations(annotationClasses)
     // Convert to an array of serialized annotations in the form "CLASS$START$END".
@@ -371,15 +371,16 @@ function saveVolumeAnnotations() {
         annotationChanges = 0
         logMessage("Saved " + annotations.length + " annotations (" +
                    geometries + " geometries)")
+        successcb()
     }),
         savefailure("saving new or updating existing entry"))
 }
 
 // Called from HTML. Save annotations. If saved successfully, reset list of
 // article changes.
-function saveAnnotations() {
+function saveAnnotations(successcb) {
     if (annotUser != "Default") {
-        saveVolumeAnnotations()
+        saveVolumeAnnotations(successcb)
     } else {
         logMessage("Please select a non-default Annotator Name prior prior to saving")
     }

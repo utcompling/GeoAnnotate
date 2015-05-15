@@ -267,12 +267,13 @@ def do_predicted_spans(outfile):
           coord = "%s,%s" % (lat, lon)
         else:
           coord = ""
-        line = "vol%s.%s\t%s\t%s\t%s\t%s\n" % (vol, spanid, vol, spanid, toponym, coord)
+        line = "vol%s.%s\t%s\t%s\t%s\t%s\t\n" % (vol, spanid, vol, spanid, toponym, coord)
         outfile.write(line)
 
 def write_schema_file(schemafile):
-  print >>schemafile, "title\tvol\tspan\ttoponym\tcoord"
+  print >>schemafile, "title\tvol\tspan\ttoponym\tcoord\tunigram-counts"
   print >>schemafile, "corpus-type\tgeneric"
+  print >>schemafile, "split\ttraining"
 
 read_combined_document_info()
 read_document_info()

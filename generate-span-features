@@ -6,6 +6,23 @@ import os
 import text
 import sys
 
+# Runs in one of three modes in conjunction with predicting spans of text
+# in War of the Rebellion (WOTR).
+#
+# 1. Using '--train', generate Mallet training data. Read raw text of pages
+#    100-199 from files in '--text' and corresponding annotated spans from
+#    files in '--spans', and write Mallet training data to the file in
+#    '--training-file'.
+#
+# 2. Using '--predict', generate features for the full WOTR text. Read raw
+#    text of all pages from files in '--text' and write Mallet features to
+#    the directory in '--predict-dir'.
+#
+# 3. Using '--predicted-spans', combine the Mallet predictions and raw text
+#   to generate predicted spans. Read raw text of all pages from files in
+#   '--text' and Mallet predictions from files in '--predictions' and
+#   write predicted spans to files in '--predicted-spans-dir'.
+
 parser = argparse.ArgumentParser(description='Generate features for finding article spans in War of The Rebellion text')
 parser.add_argument('--simple-features', action='store_true',
     help="Skip features referring to lines other than the current one.")
@@ -13,10 +30,8 @@ parser.add_argument('--train', action='store_true', help="Generate Mallet traini
 parser.add_argument('--spans',
     help="Directory containing spans for training data.")
 parser.add_argument('--training-file',
-    default='articleseg_feats.txt',
     help="File to output containing training data.")
 parser.add_argument('--predict-dir',
-    default='mallet-predict',
     help="Directory in which to output Mallet prediction data.")
 parser.add_argument('--predict-suffix',
     default='.feats',
@@ -28,7 +43,7 @@ parser.add_argument('--predicted-spans-suffix',
     help="Suffix to use for files containing predicted spans.")
 parser.add_argument('--debug', action='store_true',
     help="Output info to stdout to facilitate debugging feature generation.")
-parser.add_argument('--text',
+parser.add_argument('--text', required=True,
     help='Directory containing volume text files')
 parser.add_argument('--predictions',
     help="Directory containing MALLET predictions")
@@ -38,6 +53,19 @@ parser.add_argument('--predicted-spans', action='store_true',
     help="Combine text with predictions to generate spans")
 
 args = parser.parse_args()
+
+def need(arg):
+  if not getattr(args, arg):
+    parser.error("Must specify argument --%s" % arg.replace('_', '-'))
+
+if args.train:
+  need('spans')
+  need('training_file')
+if args.predict:
+  need('predict_dir')
+if args.predicted_spans:
+  need('predictions')
+  need('predicted_spans_dir')
 
 ranks = r"\b(Lieutenant|Lieut\.|First Lieutenant|Second Lieutenant|Brigadier|Brig\.|Captain|Capt\.|Major|Maj\.|Colonel|Col\.|General|Gen\.|Adjutant|Adjt\.|Commissioner|Com\.|Commissary|Secretary|Sec\.|Assistant|Asst\.|Surgeon|Surg\.|Chief|Provost|Prov\.|Judge|Acting|Actg\.|Agent|Inspector|Insp\.|Commanding|Comdg\.|Commander|Governor|Gov\.|President|Prest\.|Treasurer|State Treasurer|Chairman|Attorney|County Judge|Counsel|Quartermaster|Brevet|(A\. )?A\. A\. G\.)\b"
 months = "January|February|March|April|May|June|July|August|September|October|November|December|JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER"

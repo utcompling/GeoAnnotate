@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+
+import argparse
+import re
+import json
+import bz2
+import pointpoly
+
+parser = argparse.ArgumentParser(description='Split a TextDB database of War of the Rebellion text geographically')
+parser.add_argument('--spans', required=True,
+    help="TextDB data file containing spans. Can be bzipped.")
+parser.add_argument('--geojson', required=True,
+    help="""File containing polygons delimiting geographic regions, in GeoJSON
+format.""")
+parser.add_argument('--output', required=True,
+    help="TextDB prefix for outputting resulting split files.")
+
+args = parser.parse_args()
+
+def read_geojson():
+#   { "type": "Feature", "properties": { "id": 9, "name": "union northeast" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -80.733761638116064, 49.315922328733151 ], [ -67.556931805969739, 49.26485614345269 ], [ -67.036622789357097, 46.102978273268214 ], [ -66.156099838166483, 41.580292205789149 ], [ -73.57869081047528, 40.260671801046179 ], [ -73.998452987511882, 40.452157075873522 ], [ -80.520278187471689, 40.752655134211572 ], [ -80.733761638116064, 49.315922328733151 ] ] ] } },
+  regions = []
+  js = json.load(args.geojson)
+  for feat in js['features']:
+    name = feat['properties']['name'].replace(" ", "-")
+    assert feat['geometry']['type'] == "Polygon"
+    coords = feat['geometry']['coordinates']
+    if len(coords) > 1:
+      raise RuntimeError("Don't know what to do with top-level multiple coords: %s" % coords)
+    coords = coords[0]
+    regions[name] = coords
+  return regions
+
+civil_war_regions = read_geojson()
+
+schemafn = re.sub(r'^(.*)-data.txt(\.bz2)?$', r'\1', args.spans)
+with open(schemafn) as schemafile:
+  schemafields = next(schemafile)
+coordfield = schemafields.index('coord')
+
+if args.spans.endswith(".bz2"):
+  spanfile = bz2.BZ2File(args.spans)
+else:
+  spanfile = open(args.spans)
+
+regfiles = {}
+for reg in civil_war_regions.keys() + ['unknown']:
+  regfiles[reg] = open("%s-%s.data.txt" % (args.output, reg), "w")
+  with open("%s-%s.schema.txt" % (args.output, reg), "w") as schemafile:
+    print >>schemafile, "%s" % schemafields
+    print >>schemafile, "corpus-type\tgeneric"
+    print >>schemafile, "split\ttraining"
+    print >>schemafile, "region\t%s" % reg
+
+for line in spanfile:
+  if line.endswith('\n'):
+    line = line[0:-1]
+  fields = re.split("\t", line)
+  lat, lon = re.split(",", fields[coordfield])
+  lat = float(lat)
+  lon = float(lon)
+
+  for reg in civil_war_regions:
+    regcoords = civil_war_regions[reg]
+    # Check the point, but also check slightly jittered points in each of
+    # four directions in case we're exactly on a line (in which case we
+    # might get a false value for the regions on both sides of the line).
+    if (pointpoly.point_inside_polygon(lon, lat, regcoords) or
+        pointpoly.point_inside_polygon(lon + 0.0001, lat, regcoords) or
+        pointpoly.point_inside_polygon(lon - 0.0001, lat, regcoords) or
+        pointpoly.point_inside_polygon(lon, lat + 0.0001, regcoords) or
+        pointpoly.point_inside_polygon(lon, lat - 0.0001, regcoords)):
+      break
+  else:
+    reg = "unknown"
+  print >>regfiles[reg], "%s" % line

@@ -9,19 +9,16 @@ import sys
 parser = argparse.ArgumentParser(description='Generate LDA data for use with Mallet for some or all of given spans')
 parser.add_argument('--filter-regex',
     help="Regex to filter spans.")
-parser.add_argument('--input',
-    help="Directory containing input files.")
+parser.add_argument('--input', required=True,
+    help="Directory containing input files, or TextDB data file.")
 parser.add_argument('--output',
     help="File to output LDA data to.")
-parser.add_argument('--output-suffix',
-    default='.txt',
-    help="Output suffix to add to input files to form output file names.")
-parser.add_argument('--count', action="store_true",
-    help="Output counts of spans seen.")
+parser.add_argument('--textdb', action="store_true",
+    help="File in '--input' is a TextDB data file.")
 
 args = parser.parse_args()
 
-def process_files(of):
+def process_wotr_files(of):
   for fn in os.listdir(args.input):
     print fn,
     text = open(os.path.join(args.input, fn)).read()
@@ -34,13 +31,40 @@ def process_files(of):
           of.write("%s.%s span %s\n" % (fn, spanno, spantext.strip().replace("\n", " ")))
         num_handled_spans += 1
       spanno += 1
-    if args.count:
-      print "%s spans" % num_handled_spans
+    print "%s spans" % num_handled_spans
 
-if args.output:
-  if not os.path.exists(args.output):
-    os.makedirs(args.output)
-  with open(args.output, "w") as of:
-    process_files(of)
+def process_textdb(of):
+  schemafn = re.sub(r'^(.*)-data.txt(\.bz2)?$', r'\1', args.input)
+  with open(schemafn) as schemafile:
+    schemafields = next(schemafile)
+  titlefield = schemafields.index('title')
+  textfield = schemafields.index('text')
+
+  if args.spans.endswith(".bz2"):
+    spanfile = bz2.BZ2File(args.spans)
+  else:
+    spanfile = open(args.spans)
+
+  num_handled_spans = 0
+  for line in spanfile:
+    if line.endswith('\n'):
+      line = line[0:-1]
+    fields = re.split("\t", line)
+    spantext = (fields[textfield].replace("%0C", "\f").replace("%0D", "\r").
+        replace("%0A", "\n").replace("%09", "\t").replace("%25", "%"))
+    title = fields[titlefield]
+    if not args.filter_regex or re.search(args.filter_regex, spantext):
+      if of:
+        of.write("%s span %s\n" % (title, spantext.strip().replace("\n", " ")))
+      num_handled_spans += 1
+  print "%s spans" % num_handled_spans
+
+if args.textdb:
+  procfn = process_textdb
 else:
-  process_files(None)
+  procfn = process_wotr_files
+if args.output:
+  with open(args.output, "w") as of:
+    procfn(of)
+else:
+  procfn(None)

@@ -174,7 +174,8 @@ function addAnnotation(clazz, applier) {
 function savesuccess(successcb) {
     return function(obj) {
         console.log("Saved volume " + selvol + " for user " + annotUser)
-        successcb()
+        if (successcb)
+            successcb()
     }
 }
 

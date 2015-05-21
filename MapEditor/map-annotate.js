@@ -371,7 +371,8 @@ function saveVolumeAnnotations(successcb) {
         annotationChanges = 0
         logMessage("Saved " + annotations.length + " annotations (" +
                    geometries + " geometries)")
-        successcb()
+        if (successcb)
+            successcb()
     }),
         savefailure("saving new or updating existing entry"))
 }

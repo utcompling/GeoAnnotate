@@ -136,7 +136,8 @@ function saveVolumeAnnotations(successcb) {
 function saveAnnotations(successcb) {
     function success() {
         annotationChanges = 0
-        successcb()
+        if (successcb)
+            successcb()
     }
     if (annotUser != "Default") {
         // saveAnnotationsByChangeSet(success)

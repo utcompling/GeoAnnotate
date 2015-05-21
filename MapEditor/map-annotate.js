@@ -70,7 +70,26 @@ $(document).ready(function() {
         }
     })
 
-} );
+    $("#latlong").on("keypress", function(e) {
+        e = e || window.event
+        //console.log("Mouse Clicked in col2text: " + e.button)
+        if (e.keyCode == 13){
+            setLatLong()
+        }
+    })
+
+    window.addEventListener("beforeunload", function (e) {
+        var confirmationMessage = 'It looks like you have been editing something. '
+        confirmationMessage += 'If you leave before saving, your changes will be lost.'
+
+        if (annotationChanges == 0) {
+            return undefined
+        }
+
+        (e || window.event).returnValue = confirmationMessage //Gecko + IE
+        return confirmationMessage //Gecko + Webkit, Safari, Chrome etc.
+    })
+} )
 
 function getSelectionNodes() {
     var selectionRange = getSelectionRange()

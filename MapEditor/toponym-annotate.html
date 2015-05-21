@@ -32,12 +32,21 @@
         .place {
             background-color: yellow;
         }
+        .place[select]{
+            background-color: #66FFFF;
+        }
 
         .person {
             background-color: orange;
         }
+        .person[select]{
+            background-color: #66FFFF;
+        }
         .org {
-            background-color: brown;
+            background-color: #D2B48C;
+        }
+        .org[select] {
+            background-color: #66FFFF;
         }
 
 
@@ -112,6 +121,7 @@
                 <div id="xinner3">
                      <button type="button" onclick="addPlace()">Add Place (a)</button>      
                      <button type="button" onclick="addPerson()">Add Person (e)</button>
+                     <button type="button" onclick="addOrg()">Add Org (o)</button>
                      <button type="button" onclick="removeAnnotation()">Remove Annotation (r)</button>
                      <button type="button" onclick="applyGeoAll()">Apply Geometry to All</button>
                      <button type="button" onclick="saveAnnotations()">Save Annotations</button>

@@ -531,8 +531,9 @@ function annotationFeatureRemoved(event) {
 
 function commonMapInit() {
     var extent = new OpenLayers.Bounds(
-        -12003508, 3009847, -9005759, 6557774
-    );
+    -11425435.395096, 2827558.5499316, -6494329.8270487, 5762740.4356738 );
+
+    //var initial_position = new OpenLayers.LonLat(lon, lat)
 
     Parse.initialize("Dxi3BvGT3mHiDC7B1YjeEuiUQKtWIeQNofT5FIIx", "QG352rxcZvLrYeV4jOCsIZvM8mIeQyhvHzDNINAb");
 
@@ -619,6 +620,7 @@ function commonMapInit() {
 
     panel.addControls([del, edit, draw, drawpoint]);
     map.addControl(panel);
+    //map.setCenter(position, zoom);
     map.zoomToExtent(extent, true);
 }
 

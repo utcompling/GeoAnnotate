@@ -10,11 +10,15 @@ var placeUnapplierGeo;
 var personApplier;
 var personUnapplier;
 
+var orgApplier;
+var orgUnapplier;
+
 
 
 var placeClass = "place"
 var personClass = "person"
-var annotationClasses = [placeClass, personClass]
+var orgClass = "org"
+var annotationClasses = [placeClass, personClass, orgClass]
 
 function addPlace() {
     addFeature(placeClass, placeApplier)
@@ -22,6 +26,10 @@ function addPlace() {
 
 function addPerson() {
     addFeature(personClass, personApplier)
+}
+
+function addOrg() {
+    addFeature(orgClass, orgApplier)
 }
 
 function applyGeoAll(){
@@ -81,14 +89,25 @@ function init() {
         normalize: true
     });
 
+    orgApplier = rangy.createClassApplier(orgClass, {
+        elementAttributes: {onclick:"spanClick(this)"},
+        normalize: false
+    });
+    orgUnapplier = rangy.createClassApplier(orgClass, {
+        elementAttributes: {onclick:"spanClick(this)"},
+        normalize: true
+    });
+
     annotationClassesAndAppliers = [
         {clazz: placeClass, applier: placeApplier, geoapplier:placeApplierGeo, geounapplier: placeUnapplierGeo, unapplier: placeUnapplier},
-        {clazz: personClass, applier: personApplier, unapplier: personUnapplier}
+        {clazz: personClass, applier: personApplier, unapplier: personUnapplier},
+        {clazz: orgClass, applier: orgApplier, unapplier: orgUnapplier}
     ]
 
     keyCodeActions = [
         {code: 65, action: addPlace},
         {code: 69, action: addPerson},
+        {code: 79, action: addOrg},
         {code: 82, action: removeAnnotation}
     ]
 }

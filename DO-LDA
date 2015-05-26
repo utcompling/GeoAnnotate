@@ -1,0 +1,23 @@
+To run LDA using Mallet:
+
+1. To generate the raw input for Mallet:
+
+For the full LDA over all spans:
+
+./generate-lda --input wotr-spans.may-18-715pm --output wotr.may-18-715pm.combined.input
+
+For the LDA over "colored" spans:
+
+./filter-colored-generate-lda --input wotr-spans.may-18-715pm --output wotr.may-18-715pm.colored.combined.input
+
+2. Then "cook" the input into a format Mallet understands:
+
+E.g. for the full LDA over all spans:
+
+~/devel/mallet-2.0.7/bin/mallet import-file --input wotr.may-18-715pm.combined.input --output wotr.may-18-715pm.mallet --keep-sequence --remove-stopwords
+
+3. To run Mallet:
+
+E.g. for the full LDA over all spans, 40 topics:
+
+./run-mallet-lda --input wotr.may-18-715pm.mallet --num-topics 40

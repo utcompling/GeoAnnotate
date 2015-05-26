@@ -1,0 +1,40 @@
+#!/bin/sh
+help()
+{
+cat >&2 <<EOF
+Usage:
+  $0 [--input INPUT | --num-topics NTOPICS]
+
+Run Mallet LDA on input file INPUT (a required argument), which should be
+generated something like this:
+
+~/devel/mallet-2.0.7/bin/mallet import-file --input wotr.may-18-715pm.combined.input --output wotr.may-18-715pm.mallet --keep-sequence --remove-stopwords
+
+Use specified number of topics.
+
+Results are output to multiple files, all with the prefix specified by
+INPUT.
+
+NTOPICS is the number of topics, defaulting to 40.
+
+EOF
+}
+
+ntopics=40
+input=
+
+# Handle command-line args for us.
+while true ; do
+  case "$1" in
+    --input) input="$2"; shift 2 ;;
+    --num-topics) ntopics="$2"; shift 2;;
+    * ) break ;;
+  esac
+done
+
+if [ -z "$input" -o -n "$1" ]; then
+  help; exit 1
+fi
+
+~/devel/mallet-2.0.7/bin/mallet train-topics --input $input --num-topics $ntopics --output-state $input.$ntopics.topic-state.gz --output-topic-keys $input.$ntopics.topic-keys --topic-word-weights-file $input.$ntopics.topic-word-weights --word-topic-counts-file $input.$ntopics.word-topic-counts --output-doc-topics $input.$ntopics.doc-topics --xml-topic-report $input.$ntopics.xml-topic-report --xml-topic-phrase-report $input.$ntopics.xml-topic-phrase-report
+

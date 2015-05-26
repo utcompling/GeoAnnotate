@@ -19,8 +19,9 @@ args = parser.parse_args()
 
 def read_geojson():
 #   { "type": "Feature", "properties": { "id": 9, "name": "union northeast" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -80.733761638116064, 49.315922328733151 ], [ -67.556931805969739, 49.26485614345269 ], [ -67.036622789357097, 46.102978273268214 ], [ -66.156099838166483, 41.580292205789149 ], [ -73.57869081047528, 40.260671801046179 ], [ -73.998452987511882, 40.452157075873522 ], [ -80.520278187471689, 40.752655134211572 ], [ -80.733761638116064, 49.315922328733151 ] ] ] } },
-  regions = []
-  js = json.load(args.geojson)
+  regions = {}
+  with open(args.geojson) as jfil:
+    js = json.load(jfil)
   for feat in js['features']:
     name = feat['properties']['name'].replace(" ", "-")
     assert feat['geometry']['type'] == "Polygon"
@@ -33,10 +34,10 @@ def read_geojson():
 
 civil_war_regions = read_geojson()
 
-schemafn = re.sub(r'^(.*)-data.txt(\.bz2)?$', r'\1', args.spans)
+schemafn = re.sub(r'^(.*)\.data\.txt(\.bz2)?$', r'\1.schema.txt', args.spans)
 with open(schemafn) as schemafile:
-  schemafields = next(schemafile)
-coordfield = schemafields.index('coord')
+  schemafields = next(schemafile).strip()
+coordfield = schemafields.split("\t").index('coord')
 
 if args.spans.endswith(".bz2"):
   spanfile = bz2.BZ2File(args.spans)

@@ -207,10 +207,7 @@ if args.lda:
   with open(args.output, "w") as outfile:
 
     if args.latex:
-      print >>outfile, r"""\begin{table}
-\vspace{-25mm}
-\resizebox{0.9\textwidth}{!}{%\begin{small}
-\begin{tabular}{|l||r|l|}
+      print >>outfile, r"""\begin{tabular}{|l||r|l|}
 \hline
 \textbf{Topic} & \textbf{Prop\%} & \textbf{Top words} \\
 \hline"""
@@ -247,8 +244,4 @@ if args.lda:
           print >>outfile, "%s\t%0.2f\t%s" % (
               index, 100.0 * prop, topic_keys[index])
     if args.latex:
-      print >>outfile, r"""\end{tabular}
-}%\end{small}
-\caption{Top topics for different regions in \wotr.}
-\label{tab:region topics}
-\end{table}"""
+      print >>outfile, r"""\end{tabular}"""

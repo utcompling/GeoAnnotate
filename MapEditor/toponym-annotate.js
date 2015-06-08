@@ -46,7 +46,7 @@ function applyGeoAll(){
             var pnode = place_nodes[i]
             if (pnode.textContent.toLowerCase() == text){
                 places++;
-                setStoredMapFeatures(pnode, current_geom)
+                setStoredMapFeatures(pnode, current_geom, true)
             }
         }
         logMessage("Applied Geometry to " + places + " occurences of " + "'" + text + "'")

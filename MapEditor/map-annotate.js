@@ -204,6 +204,8 @@ function setStoredMapFeatures(node, feats, setattr) {
         node.setAttribute("geo", "1")
     }
 
+    console.log(feats)
+
     if (feats.length == 0) {
         node.removeAttribute("geo")
     }

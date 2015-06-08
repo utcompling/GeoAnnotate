@@ -94,3 +94,7 @@ cd ~tge/wotr/volspans-predicted-wotr-may-18-715pm
 for x in 1 1.50 2 2.50 3.50; do textgrounder run opennlp.textgrounder.preprocess.FrobTextDB --coords-from-results results.volspans-predicted-wotr-may-18-715pm.nbayes.deg$x.2015*.data.txt -i ~cowr/volspans-predicted-wotr-may-18-715pm -s dev --output-dir ~cowr/volspans-predicted-wotr-may-18-715pm-predicted-deg$x &; done
 for x in 1 1.50 2 2.50 3.50; do bzip2 ~cowr/volspans-predicted-wotr-may-18-715pm-predicted-deg$x/*.data.txt &; done
 
+5. Finally, move the dev data to become training data so that further work
+   can be done on it (e.g. creating KML graphs or heatmaps).
+
+for x in 1 1.50 2 2.50 3.50; do cd volspans-predicted-wotr-may-18-715pm-predicted-deg$x; mmv *-dev.* *-training.*; gr dev training *.schema.txt; cd ..; done

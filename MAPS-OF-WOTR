@@ -1,0 +1,54 @@
+I. Different corpora in /corpora/wotr:
+
+1. 'cwred-20150415': CWRED corpus of Civil War military actions, from
+   Scott Nesbit.
+
+2. 'dsl-080414': Corpus of emancipation and similar events.
+
+3. 'volspans-predicted-wotr-*-predicted-deg*', e.g.
+   'volspans-predicted-wotr-may-18-715pm-predicted-deg1': Predicted volume
+   spans with predicted coordinates from WOTR, using annotations from the
+   given date and running the predictions using Naive Bayes with uniform
+   grid size as given.
+
+4. 'wotr-*-60-20-20', e.g. 'wotr-may-18-715pm-60-20-20': 60/20/20 split
+   of annotated WOTR spans for the given date.
+
+5. 'wotr-*-100-0-0', e.g. 'wotr-may-18-715pm-100-0-0': 100/0/0 split of
+   annotated WOTR spans for the given date.
+
+II. To generate a KML map of the distribution of a corpus, e.g.
+'may-18-715pm-100-0-0':
+
+for x in 1 1.5 2 2.5 3.5; do for z in 2000000; do run-nohup -i kml.num-docs.deg$x.$z textgrounder run opennlp.textgrounder.geolocate.GenerateKML -i wotr-may-18-715pm-100-0-0 --kdt num-docs --kml-max-height $z --kml-prefix kml-dist.wotr-may-18-715pm-100-0-0-deg$x.$z --dpc $x &; done; done
+
+This generates KML maps for degree sizes 1, 1.5, 2, 2.5 and 3.5, using
+KML max height of 2,000,000, which usually works well.
+
+III. To generate a heatmap of the distribution of a corpus, e.g.
+'may-18-715pm-100-0-0':
+
+1. Use WriteGrid to write out the grid to a TextDB database.
+
+for x in 1 1.5 2 2.5 3.5; do textgrounder run opennlp.textgrounder.geolocate.WriteGrid -i wotr-may-18-715pm-100-0-0 --dpc $x -o grid.wotr-may-18-715pm-deg$x; done
+
+2. Use WriteGridToPolygons to convert the TextDB database into R input data
+   and copy it to the R working directory (~didir).
+
+for x in 1 1.5 2 2.5 3.5; do textgrounder run opennlp.textgrounder.postprocess.WriteGridToPolygons -i grid.wotr-may-18-715pm-deg$x.data.txt --or wotr-may-18-715pm-deg$x.rect; cp wotr-may-18-715pm-deg$x.rect ~didir; done
+
+Note, you can also output centroids, useful for some R graphs.
+
+for x in 1 1.5 2 2.5 3.5; do textgrounder run opennlp.textgrounder.postprocess.WriteGridToPolygons -i grid.wotr-may-18-715pm-deg$x.data.txt --or wotr-may-18-715pm-deg$x.rect --oc wotr-may-18-715pm-deg$x.centroid; done
+
+You can also output the rectangles and/or centroids in GeoJSON format if needed
+using '--geojson'.
+
+3. Edit plot-dist-heatmap.R in ~didir, setting the date appropriately and
+   uncommenting the appropriate section for annotated WOTR spans. Open up R
+   and execute:
+
+setwd("~/ut/dissertation/dissertation/r-code/")
+source("plot-dist-heatmap.R")
+
+This creates a file like 'wotr-may-18-715pm.pdf'.

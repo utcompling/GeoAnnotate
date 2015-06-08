@@ -1,5 +1,10 @@
 # GeoAnnotate
 
+GeoAnnotate is a javascript application built to collect toponym and document-level geographic annotations. It is designed to work with Parse (https://www.parse.com/), a free backend service. Currently it is not hosted on any publicly accessible servers. 
+A screenshot of the application in action:
+
+![toponym-annotate](https://github.com/utcompling/GeoAnnotate/blob/master/GeoAnnotate_Screenshot.png)
+
 ## Setting up GeoAnnotate to run locally
 
 ### Mac OSX

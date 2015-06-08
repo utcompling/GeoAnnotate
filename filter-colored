@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# Use this to run 'wotr_to_corpus.py' or 'generate-lda' with a
+# '--filter-regex' that filters for "colored" spans, i.e. spans mentioning
+# the terms "contraband", "slave", "negro", "colord", "freedman/freedmen",
+# or certain expressions involving the word "black".
+#
+# If '--lda' is given as the first argument, run 'generate-lda', else
+# 'wotr_to_corpus.py'. Example of how to run:
+#
+# ./filter-colored --lda --input wotr-spans.may-18-715pm --output wotr.may-18-715pm.colored.combined.input
+
+# Handle command-line args for us.
+
+dolda=no
+
+while true ; do
+  case "$1" in
+    --lda ) dolda=yes; shift ;;
+    * ) break ;;
+  esac
+done
+
+regex="$(cat colored-regex)"
+
+if [ "$dolda" = "yes" ]; then
+  ./generate-lda --filter-regex "$regex" "$@"
+else
+  $TEXTGROUNDER_DIR/src/main/python/wotr_to_corpus.py --filter-regex "$regex" "$@"
+fi

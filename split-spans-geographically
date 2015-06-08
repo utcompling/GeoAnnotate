@@ -29,6 +29,12 @@ parser.add_argument('--split', action='store_true',
     help="Generate separate TextDB files, one per geographic region.")
 parser.add_argument('--lda', action='store_true',
     help="Determine the distribution of topics in each geographic region.")
+parser.add_argument('--latex', action='store_true',
+    help="Output region topics in LaTeX format instead of human-readable.")
+parser.add_argument('--num-top-topics', '--ntop', type=int,
+    help="Number of top topics per region to output.")
+parser.add_argument('--num-top-regions', '--nreg', type=int,
+    help="Number of top regions to output.")
 parser.add_argument('--max-lines', type=int,
     help="Maximum lines in TextDB file to process (for debugging).")
 
@@ -142,6 +148,18 @@ def yield_lines_and_regions():
       reg = "unknown"
     yield (line, fields, reg)
 
+def split_sentence_in_two(sent):
+  l = len(sent) / 2
+  while l < len(sent) and sent[l] != ' ':
+    l += 1
+  return [sent[0:l], sent[l+1:]]
+
+def prettify_region_name(name):
+  name = name.replace("-", " ")
+  name = re.sub(r"\b([a-z])", lambda m: m.group(1).upper(), name)
+  name = name.replace("Trans ", "Trans-")
+  return name
+
 if args.split:
   regfiles = {}
   # Write out schema files for geographic regions
@@ -188,18 +206,42 @@ if args.lda:
   # Output topic proportions for each region
   with open(args.output, "w") as outfile:
 
-    for reg, props in region_proportions.iteritems():
+    if args.latex:
+      print >>outfile, r"""\begin{tabular}{|l||r|l|}
+\hline
+\textbf{Topic} & \textbf{Prop\%} & \textbf{Top words} \\
+\hline"""
+    else:
+      print >>outfile, "Total num-lines: %s" % num_lines
+    reg_with_props = [(reg, props, region_span_count[reg])
+        for reg, props in region_proportions.iteritems()]
+    reg_with_props = sorted(reg_with_props, key=lambda x: -x[2])
+    nreg = args.num_top_regions or len(reg_with_props)
+    reg_with_props = reg_with_props[0:nreg]
+    for reg, props, regcount in reg_with_props:
       # Normalize topic proportions
       totalprops = sum(props)
       if totalprops > 0.0:
         for i in xrange(len(props)):
           props[i] /= totalprops
-      regcount = region_span_count[reg]
-      print >>outfile, "Total num-lines: %s" % num_lines
-      print >>outfile, "Region: %s num-lines %s (%0.2f%%)" % (
-          reg, regcount, 100.0 * float(regcount) / num_lines)
       indexed_props = [(i, props[i]) for i in xrange(len(props))]
-      sorted_props = sorted(indexed_props, key = lambda x: -x[1])
-      for index, prop in sorted_props:
-        print >>outfile, "%s\t%s\t%s" % (index, prop, topic_keys[index])
-
+      sorted_props = sorted(indexed_props, key=lambda x: -x[1])
+      ntop = args.num_top_topics or len(sorted_props)
+      sorted_props = sorted_props[0:ntop]
+      prettyreg = prettify_region_name(reg)
+      if args.latex:
+        print >>outfile, r"""\hline
+\multicolumn{3}{|c|}{\textbf{Region: %s (%s spans, %0.2f\%%)}} \\
+\hline""" % (prettyreg, regcount, 100.0 * float(regcount) / num_lines)
+        for index, prop in sorted_props:
+          words1, words2 = split_sentence_in_two(topic_keys[index])
+          print >>outfile, r"""%s & %0.2f & \shortstack[l]{%s \\ %s} \\
+\hline""" % (index, 100.0 * prop, words1, words2)
+      else:
+        print >>outfile, "Region: %s (%s spans, %0.2f%%)" % (
+            prettyreg, regcount, 100.0 * float(regcount) / num_lines)
+        for index, prop in sorted_props:
+          print >>outfile, "%s\t%0.2f\t%s" % (
+              index, 100.0 * prop, topic_keys[index])
+    if args.latex:
+      print >>outfile, r"""\end{tabular}"""

@@ -24,7 +24,7 @@ done
 regex="$(cat colored-regex)"
 
 if [ "$dolda" = "yes" ]; then
-  ./generate-lda --filter-regex "$regex" "$@"
+  ./python/generate-lda.py --filter-regex "$regex" "$@"
 else
   $TEXTGROUNDER_DIR/src/main/python/wotr_to_corpus.py --filter-regex "$regex" "$@"
 fi

@@ -145,11 +145,11 @@ function getAnnotations(classes) {
     return getAnnotationsFast(classes)
 }
 
-function addAnnotation(clazz, applier) {
+function addAnnotation(clazz, applier, conflict_clazzes) {
     //debugger;
     var selectionRange = getSelectionRange()
     if (selectionRange.startOffset != selectionRange.endOffset) {
-        if (overlapsAnnotation(selectionRange, false, [clazz])) {
+        if (overlapsAnnotation(selectionRange, false, conflict_clazzes)) {
             logMessage("Selection already contains part of an annotation")
             return false
         } else {

@@ -21,15 +21,15 @@ var orgClass = "org"
 var annotationClasses = [placeClass, personClass, orgClass]
 
 function addPlace() {
-    addFeature(placeClass, placeApplier)
+    addFeature(placeClass, placeApplier, annotationClasses)
 }
 
 function addPerson() {
-    addFeature(personClass, personApplier)
+    addFeature(personClass, personApplier, annotationClasses)
 }
 
 function addOrg() {
-    addFeature(orgClass, orgApplier)
+    addFeature(orgClass, orgApplier, annotationClasses)
 }
 
 function applyGeoAll(){

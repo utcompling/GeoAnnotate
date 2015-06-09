@@ -204,7 +204,7 @@ function setStoredMapFeatures(node, feats, setattr) {
         node.setAttribute("geo", "1")
     }
 
-    console.log(feats)
+    //console.log(feats)
 
     if (feats.length == 0) {
         node.removeAttribute("geo")
@@ -248,9 +248,12 @@ function displayMapFeatures(jsonfeats) {
 }
 
 // Add an annotation with an attached map feature
-function addFeature(clazz, applier) {
+function addFeature(clazz, applier, conflict_clazzes) {
     destroyMapFeatures()
-    if (addAnnotation(clazz, applier)) {
+    if (conflict_clazzes==='undefined'){
+        conflict_clazzes = [clazz]
+    }
+    if (addAnnotation(clazz, applier, conflict_clazzes)) {
         var nodes = getSelectionNodes()
         if (nodes.length > 0)
             lastSelectedNode = nodes[0]

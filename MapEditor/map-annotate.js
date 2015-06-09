@@ -471,7 +471,9 @@ function removeAnnotationsUponLoad() {
 }
 
 function removeAnnotation() {
-    removeSelectCSS(lastSelectedNode)
+    if (lastSelectedNode){
+        removeSelectCSS(lastSelectedNode)
+
     setSelectionToNode(lastSelectedNode)
     var selectionRange = getSelectionRange()
     if (overlapsAnnotation(selectionRange, true, annotationClasses))
@@ -491,6 +493,10 @@ function removeAnnotation() {
         destroyMapFeatures()
         lastSelectedNode = undefined
         annotationChanges++
+    }
+    }
+    else{
+        logMessage("Cannot Remove Span that hasn't been selected")
     }
 }
 

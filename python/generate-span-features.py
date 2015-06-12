@@ -291,6 +291,8 @@ class FeatureVector:
         w.write(u' '.join(v[-1]) + '\n')
 
 volume_spans = {}
+volume_user = {}
+volume_io_spans = {}
 volume_text = {}
 volume_predictions = {}
 
@@ -309,12 +311,12 @@ def read_volume_text():
 # computation of outside text.
 ignore_bookending_outside_text = True
 
-def read_volume_spans():
+def read_volume_io_spans():
   for spanfile in os.listdir(args.spans):
     m = re.match("(.*)-([0-9]+).txt$", spanfile)
     if not m:
       print "Unable to parse span filename %s" % spanfile
-      print 'File name format should be e.g. "Max Caldwalder-60.txt" where 60 means volume 60'
+      print 'File name format should be e.g. "Max Cadwalder-60.txt" where 60 means volume 60'
     else: 
       user = m.group(1)
       vol = m.group(2)
@@ -325,6 +327,23 @@ def read_volume_spans():
       for span in splitspans:
         spanparts = re.split(r"\$", span)
         spans.append([int(spanparts[1]), int(spanparts[2])])
+      if vol in volume_spans:
+        num_existing_spans = len(volume_spans[vol])
+        num_new_spans = len(spans)
+        # Overwrite if more spans, or if same number of spans and new user
+        # is Max or Ben, because we consider them more reliable than the
+        # others
+        if num_new_spans > num_existing_spans or (
+            num_new_spans == num_existing_spans and
+            user in ["Ben Wing", "Max Cadwalder"]):
+          print "Volume %s: Overwriting existing user %s spans with spans from %s because more of them (%s > %s)" % (
+              vol, volume_user[vol], user, num_new_spans,
+              num_existing_spans)
+        else:
+          print "Volume %s: Not overwriting existing user %s spans with fewer spans from %s (%s < %s)" % (
+              vol, volume_user[vol], user, num_new_spans,
+              num_existing_spans)
+          continue
       io_spans = []
       voltext = volume_text[vol]
       ind = 0
@@ -342,7 +361,9 @@ def read_volume_spans():
           outside_text = voltext[ind:].strip()
           if outside_text:
             io_spans.append([False, outside_text])
-      volume_spans[vol] = io_spans
+      volume_user[vol] = user
+      volume_spans[vol] = spans
+      volume_io_spans[vol] = io_spans
 
 def read_volume_predictions():
   for fn in os.listdir(args.predictions):
@@ -362,7 +383,7 @@ def generate_paras(text):
 
 def get_biol_paras(vol):
   allparas = []
-  for inside, text in volume_spans[vol]:
+  for inside, text in volume_io_spans[vol]:
     paras = [para for para in generate_paras(text)]
     last_inside = 0
     for i in xrange(len(paras)):
@@ -384,8 +405,8 @@ def get_biol_paras(vol):
 
 if args.train:
   read_volume_text()
-  read_volume_spans()
-  vols = sorted([vol for vol in volume_spans], key=lambda x:int(x))
+  read_volume_io_spans()
+  vols = sorted([vol for vol in volume_io_spans], key=lambda x:int(x))
   FV = FeatureVector()
   vectorses = []
   for vol in vols:

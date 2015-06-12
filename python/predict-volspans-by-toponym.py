@@ -279,9 +279,9 @@ read_combined_document_info()
 read_document_info()
 read_links()
 
-#outdir = os.path.dirname(args.output)
-#if not os.path.exists(outdir):
-#  os.makedirs(outdir)
+outdir = os.path.dirname(args.output)
+if outdir and not os.path.exists(outdir):
+  os.makedirs(outdir)
 outfile = open("%s.data.txt" % args.output, "w")
 do_predicted_spans(outfile)
 outfile.close()

@@ -6,22 +6,23 @@ First, you need the following:
    '../wotr-text-100'. This should contain only the '*.txt.joined' files
    (use symlinks if necessary).
 2. Files containing manually annotated docgeo spans, e.g. in
-   'docgeo-spans-may-18-715pm'.
+   'docgeo-spans-jun-10-616pm'.
 3. Files containing predicted spans, including the text, e.g. in
-   'wotr-spans.may-18-715pm'.
+   'wotr-spans.jun-10-616pm' (see GENERATE-ARTICLE-SPANS).
 
 The steps below produce the following output files/directories:
 
-1. 'wotr-may-18-715pm-100-0-0' or similar: Directory containing the manually
+1. 'wotr-jun-10-616pm-100-0-0' or similar: Directory containing the manually
    annotated docgeo spans in TextDB format, split with 100% in the training
    set.
-2. 'wotr-may-18-715pm-60-20-20' or similar: Directory containing the manually
+2. 'wotr-jun-10-616pm-60-20-20' or similar: Directory containing the manually
    annotated docgeo spans in TextDB format, split 60/20/20 in
    training/dev/test.
-3. 'volspans-predicted-wotr-may-18-715pm' or similar: Directory containing
+3. 'volspans-predicted-wotr-jun-10-616pm' or similar: Directory containing
    the predicted WOTR spans in TextDB format.
-4. 'volspans-predicted-wotr-may-18-715pm-predicted-deg1' or similar (and
-   likewise for '...-deg1.5', '...-deg2', '...-deg2.5', '...-deg3.5'):
+4. 'volspans-predicted-wotr-jun-10-616pm-predicted-deg1' or similar (and
+   likewise for '...-deg1.5', '...-deg2', '...-deg2.5', '...-deg3.5',
+   '...-kd5', '...-kd10', '...-kd15', '...-kd20', '...-kd30', '...-kd40'):
    Directory containing the predicted WOTR spans in TextDB format, with
    predicted coordinates at various grid sizes using Naive Bayes.
 
@@ -30,32 +31,33 @@ Then:
 1. Generate the manually annotated docgeo spans in TextDB format, both
    60/20/20 split and 100/0/0 split.
 
-~tgpy/wotr_to_corpus.py --spans docgeo-spans-may-18-715pm --text ../wotr-text-100 -o ~co/wotr/wotr-may-18-715pm-60-20-20/wotr-may-18-715pm-60-20-20 --fractions 60:20:20
-~tgpy/wotr_to_corpus.py --spans docgeo-spans-may-18-715pm --text ../wotr-text-100 -o ~co/wotr/wotr-may-18-715pm-100-0-0/wotr-may-18-715pm-100-0-0 --fractions 100:0:0
+~tgpy/wotr_to_corpus.py --spans docgeo-spans-jun-10-616pm --text ../wotr-text-100 -o ~co/wotr/wotr-jun-10-616pm-60-20-20/wotr-jun-10-616pm-60-20-20 --fractions 60:20:20
+~tgpy/wotr_to_corpus.py --spans docgeo-spans-jun-10-616pm --text ../wotr-text-100 -o ~co/wotr/wotr-jun-10-616pm-100-0-0/wotr-jun-10-616pm-100-0-0 --fractions 100:0:0
 
 2. Generate the predicted WOTR spans in TextDB format, 0/100/0 split (this
    puts everything in the dev set so that we can geolocate it), with the
    manually annotated docgeo spans as training data.
 
-~tgpy/wotr_to_corpus.py --predicted-spans wotr-spans.may-18-715pm -o ~co/wotr/volspans-predicted-wotr-may-18-715pm/volspans-predicted --include-non-coord-paras --fractions 0:100:0
-cp ~co/wotr/wotr-may-18-715pm-100-0-0/*-training.* ~co/wotr/volspans-predicted-wotr-may-18-715pm
-rm ~co/wotr/volspans-predicted-wotr-may-18-715pm/volspans-predicted-{training,test}*
-bzip2 ~co/wotr/volspans-predicted-wotr-may-18-715pm/volspans-predicted-dev.data.txt
+~tgpy/wotr_to_corpus.py --predicted-spans wotr-spans.jun-10-616pm -o ~co/wotr/volspans-predicted-wotr-jun-10-616pm/volspans-predicted --include-non-coord-paras --fractions 0:100:0
+cp ~co/wotr/wotr-jun-10-616pm-100-0-0/*-training.* ~co/wotr/volspans-predicted-wotr-jun-10-616pm
+rm ~co/wotr/volspans-predicted-wotr-jun-10-616pm/volspans-predicted-{training,test}*
+bzip2 ~co/wotr/volspans-predicted-wotr-jun-10-616pm/volspans-predicted-dev.data.txt
 
 3. Geolocate the predicted WOTR spans.
 
 To do this locally:
 
-mkdir ~tge/wotr/volspans-predicted-wotr-may-18-715pm
-cd ~tge/wotr/volspans-predicted-wotr-may-18-715pm
-for x in 1 1.5 2 2.5 3.5; do nohup-tg-geolocate wotr/volspans-predicted-wotr-may-18-715pm --ranker nb --dpc $x; done
+mkdir ~tge/wotr/volspans-predicted-wotr-jun-10-616pm
+cd ~tge/wotr/volspans-predicted-wotr-jun-10-616pm
+for x in 1 1.5 2 2.5 3.5; do nohup-tg-geolocate wotr/volspans-predicted-wotr-jun-10-616pm --ranker nb --dpc $x; done
+for x in 5 10 15 20 25 30 40; do nohup-tg-geolocate wotr/volspans-predicted-wotr-jun-10-616pm --ranker nb --kd-tree --kd-bucket-size $x; done
 
 To do this on Maverick:
 
-rsync -avz ~co/wotr/volspans-predicted-wotr-may-18-715pm maverick:/work/01683/benwing/corpora/wotr
+rsync -avz ~co/wotr/volspans-predicted-wotr-jun-10-616pm maverick:/work/01683/benwing/corpora/wotr
 ssh maverick
-mkdir ~tge/wotr/volspans-predicted-wotr-may-18-715pm
-cd ~tge/wotr/volspans-predicted-wotr-may-18-715pm
+mkdir ~tge/wotr/volspans-predicted-wotr-jun-10-616pm
+cd ~tge/wotr/volspans-predicted-wotr-jun-10-616pm
 Then create a file job.gpu.24hr.volspans-predicted-wotr-may-18-15pm.nb as follows:
 ---------------------------- cut -------------------------------
 #!/bin/bash
@@ -73,7 +75,7 @@ Then create a file job.gpu.24hr.volspans-predicted-wotr-may-18-15pm.nb as follow
 # for more documentation.
 
 corpusdir=wotr
-corpus=volspans-predicted-wotr-may-18-715pm
+corpus=volspans-predicted-wotr-jun-10-616pm
 igrdir=$WORK/exps/$corpusdir/$corpus/igr
 
 jobscripts=$WORK/exps/jobscripts
@@ -81,20 +83,30 @@ jobscripts=$WORK/exps/jobscripts
 
 # vi:filetype=sh
 ---------------------------- cut -------------------------------
-sbatch job.gpu.24hr.volspans-predicted-wotr-may-18-715pm.nb uniform "1 1.5 2 2.5 3.5"
-Then wait for it to finish (in 20 minutes or so).
+sbatch job.gpu.24hr.volspans-predicted-wotr-jun-10-616pm.nb uniform "1 1.5 2 2.5 3.5"
+sbatch job.gpu.24hr.volspans-predicted-wotr-jun-10-616pm.nb kd "5 10 15 20 25 30 40"
+Then wait for them to finish (in 20 minutes or so).
 exit
-mkdir ~tge/wotr/volspans-predicted-wotr-may-18-715pm
-cd ~tge/wotr/volspans-predicted-wotr-may-18-715pm
-rsync -avz maverick:/work/01683/benwing/exps/wotr/volspans-predicted-wotr-may-18-715pm/\* .
+mkdir ~tge/wotr/volspans-predicted-wotr-jun-10-616pm
+cd ~tge/wotr/volspans-predicted-wotr-jun-10-616pm
+rsync -avz maverick:/work/01683/benwing/exps/wotr/volspans-predicted-wotr-jun-10-616pm/\* .
 
 4. Then combine the geolocated results back into the predicted spans.
 
-cd ~tge/wotr/volspans-predicted-wotr-may-18-715pm
-for x in 1 1.50 2 2.50 3.50; do textgrounder run opennlp.textgrounder.preprocess.FrobTextDB --coords-from-results results.volspans-predicted-wotr-may-18-715pm.nbayes.deg$x.2015*.data.txt -i ~cowr/volspans-predicted-wotr-may-18-715pm -s dev --output-dir ~cowr/volspans-predicted-wotr-may-18-715pm-predicted-deg$x &; done
-for x in 1 1.50 2 2.50 3.50; do bzip2 ~cowr/volspans-predicted-wotr-may-18-715pm-predicted-deg$x/*.data.txt &; done
+cd ~tge/wotr/volspans-predicted-wotr-jun-10-616pm
+for x in 1 1.50 2 2.50 3.50; do textgrounder run opennlp.textgrounder.preprocess.FrobTextDB --coords-from-results results.volspans-predicted-wotr-jun-10-616pm.nbayes.deg$x.2015*.data.txt -i ~cowr/volspans-predicted-wotr-jun-10-616pm -s dev --output-dir ~cowr/volspans-predicted-wotr-jun-10-616pm-predicted-deg$x &; done
+for x in 1 1.50 2 2.50 3.50; do bzip2 ~cowr/volspans-predicted-wotr-jun-10-616pm-predicted-deg$x/*.data.txt &; done
+for x in 5 10 15 20 25 30 40; do textgrounder run opennlp.textgrounder.preprocess.FrobTextDB --coords-from-results results.volspans-predicted-wotr-jun-10-616pm.nbayes.Kd.bucketsz$x.2015*.data.txt -i ~cowr/volspans-predicted-wotr-jun-10-616pm -s dev --output-dir ~cowr/volspans-predicted-wotr-jun-10-616pm-predicted-kd$x &; done
+for x in 5 10 15 20 25 30 40; do bzip2 ~cowr/volspans-predicted-wotr-jun-10-616pm-predicted-kd$x/*.data.txt &; done
 
-5. Finally, move the dev data to become training data so that further work
+5. Then, move the dev data to become training data so that further work
    can be done on it (e.g. creating KML graphs or heatmaps).
 
-for x in 1 1.50 2 2.50 3.50; do cd volspans-predicted-wotr-may-18-715pm-predicted-deg$x; mmv *-dev.* *-training.*; gr dev training *.schema.txt; cd ..; done
+cd ~co/wotr
+for x in 1 1.50 2 2.50 3.50; do cd volspans-predicted-wotr-jun-10-616pm-predicted-deg$x; mmv *-dev.* *-training.*; gr dev training *.schema.txt; cd ..; done
+for x in 5 10 15 20 25 30 40; do cd volspans-predicted-wotr-jun-10-616pm-predicted-kd$x; mmv *-dev.* *-training.*; gr dev training *.schema.txt; cd ..; done
+
+6. Finally, copy it back to local.
+
+cd ~co/wotr
+rsync -avz maverick:/work/01683/benwing/corpora/wotr/volspans-predicted-wotr-jun-10-616pm-predicted-\* .

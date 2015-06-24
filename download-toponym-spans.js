@@ -11,6 +11,7 @@ var VolTextObject = Parse.Object.extend("VolumeText")
 var NESpansObject = Parse.Object.extend("NESpans")
 
 var args = process.argv.slice(2)
+var user = args[0]
 
 function failure(op, error) {
   console.log("Failure " + op + " " + error.message + " (" + error.code + ")")
@@ -45,9 +46,10 @@ function loadSpanFiles(items) {
   }
 }
 
-function loadSpanInfo(aftercb) {
+function loadSpanInfo(aftercb, user_name) {
   var query = new Parse.Query(NESpansObject)
-  query.limit(1000)
+  query.equalTo("user", user_name);
+  //query.limit(1000)
   query.find().then(function(results) {
     var items = results.map(function(result) {
       var item = {user: result.get("user"), vol: result.get("vol"),
@@ -62,4 +64,6 @@ function loadSpanInfo(aftercb) {
   })
 }
 
-loadSpanInfo(loadSpanFiles)
+
+console.log(user)
+loadSpanInfo(loadSpanFiles, user)

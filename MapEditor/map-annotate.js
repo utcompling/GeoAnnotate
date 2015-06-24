@@ -483,10 +483,12 @@ function removeAnnotation() {
         nodes.forEach(function(node) {
             annotationClassesAndAppliers.forEach(function(ca) {
                if (ca.clazz == node.className) {
-                    if (node.getAttribute("geo"))
+                    if (node.getAttribute("geo")){
                         ca.geounapplier.undoToRange(makeRange(node))
-                    else
+                    }
+                    else {
                         ca.unapplier.undoToRange(makeRange(node))
+                    }
                }
             })
         })

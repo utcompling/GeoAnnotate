@@ -9,9 +9,11 @@ var placeUnapplierGeo;
 
 var personApplier;
 var personUnapplier;
+var personUnapplierGeo;
 
 var orgApplier;
 var orgUnapplier;
+var orgUnapplierGeo;
 
 
 
@@ -89,6 +91,11 @@ function init() {
         normalize: true
     });
 
+    personUnapplierGeo = rangy.createClassApplier(personClass, {
+        elementAttributes: {onclick:"spanClick(this)", geo:"1"},
+        normalize: true
+    });
+
     orgApplier = rangy.createClassApplier(orgClass, {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: false
@@ -97,11 +104,15 @@ function init() {
         elementAttributes: {onclick:"spanClick(this)"},
         normalize: true
     });
+    orgUnapplierGeo = rangy.createClassApplier(orgClass, {
+        elementAttributes: {onclick:"spanClick(this)", geo:"1"},
+        normalize: true
+    });
 
     annotationClassesAndAppliers = [
         {clazz: placeClass, applier: placeApplier, geoapplier:placeApplierGeo, geounapplier: placeUnapplierGeo, unapplier: placeUnapplier},
-        {clazz: personClass, applier: personApplier, unapplier: personUnapplier},
-        {clazz: orgClass, applier: orgApplier, unapplier: orgUnapplier}
+        {clazz: personClass, applier: personApplier, unapplier: personUnapplier, geounapplier: personUnapplierGeo},
+        {clazz: orgClass, applier: orgApplier, unapplier: orgUnapplier, geounapplier: orgUnapplierGeo}
     ]
 
     keyCodeActions = [

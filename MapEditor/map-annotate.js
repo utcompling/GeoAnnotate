@@ -343,80 +343,87 @@ function snapToJsonLocation(jsonfeats, addtorecentlocs) {
     }
 }
 
-function convertDegreesToDecimal(degcoord){
+function convertDegreesToDecimal(latlong){
     var sll = latlong.split(/[NSEW]/)
     var lat = 0.0
     var lon = 0.0
+    console.log(sll)
     if (sll.length == 3){
-        var l_row1 = sll[0].split(/[°′″]/)
-        console.log(l_row)
-        var l_row2 = sll[1].split(/[°′″]/)
+        var lrow1 = sll[0].split(/[°′″]/)
+        lrow1[0] = parseFloat(lrow1[0])
+        lrow1[1] = parseFloat(lrow1[1])
+        lrow1[2] = parseFloat(lrow1[2])
+        console.log(lrow1)
+        var lrow2 = sll[1].split(/[°′″]/)
+        lrow2[0] = parseFloat(lrow2[0])
+        lrow2[1] = parseFloat(lrow2[1])
+        lrow2[2] = parseFloat(lrow2[2])
         if ((latlong.indexOf('N') >= 0 && latlong.indexOf('E') >= 0) && (latlong.indexOf('N') <= latlong.indexOf('E'))){
             lat = lrow1[0]
             lat = lat + lrow1[1]/60.0
-            lat = lat + lrow1[2]/360.0
+            lat = lat + lrow1[2]/3600.0
             lon = lrow2[0]
             lon = lon + lrow2[1]/60.0
-            lon = lon + lrow2[2]/360.0
+            lon = lon + lrow2[2]/3600.0
         }else if ((latlong.indexOf('N') >= 0 && latlong.indexOf('E') >= 0) && (latlong.indexOf('N') >= latlong.indexOf('E'))){
             lat = lrow2[0]
             lat = lat + lrow2[1]/60.0
-            lat = lat + lrow2[2]/360.0
+            lat = lat + lrow2[2]/3600.0
             lon = lrow1[0]
             lon = lon + lrow1[1]/60.0
-            lon = lon + lrow1[2]/360.0
+            lon = lon + lrow1[2]/3600.0
         }
         if ((latlong.indexOf('S') >= 0 && latlong.indexOf('E') >= 0) && (latlong.indexOf('S') <= latlong.indexOf('E'))){
             lat = lrow1[0]
             lat = lat + lrow1[1]/60.0
-            lat = lat + lrow1[2]/360.0
+            lat = lat + lrow1[2]/3600.0
             lat = lat * -1.0
             lon = lrow2[0]
             lon = lon + lrow2[1]/60.0
-            lon = lon + lrow2[2]/360.0
+            lon = lon + lrow2[2]/3600.0
         }else if ((latlong.indexOf('S') >= 0 && latlong.indexOf('E') >= 0) && (latlong.indexOf('S') >= latlong.indexOf('E'))){
             lat = lrow2[0]
             lat = lat + lrow2[1]/60.0
-            lat = lat + lrow2[2]/360.0
+            lat = lat + lrow2[2]/3600.0
             lat = lat * -1.0
             lon = lrow1[0]
             lon = lon + lrow1[1]/60.0
-            lon = lon + lrow1[2]/360.0
+            lon = lon + lrow1[2]/3600.0
         }
         if ((latlong.indexOf('S') >= 0 && latlong.indexOf('W') >= 0) && (latlong.indexOf('S') <= latlong.indexOf('W'))){
             lat = lrow1[0]
             lat = lat + lrow1[1]/60.0
-            lat = lat + lrow1[2]/360.0
+            lat = lat + lrow1[2]/3600.0
             lat = lat * -1.0
             lon = lrow2[0]
             lon = lon + lrow2[1]/60.0
-            lon = lon + lrow2[2]/360.0
+            lon = lon + lrow2[2]/3600.0
             lon = lon * -1.0
         }else if ((latlong.indexOf('S') >= 0 && latlong.indexOf('W') >= 0) && (latlong.indexOf('S') >= latlong.indexOf('W'))){
             lat = lrow2[0]
             lat = lat + lrow2[1]/60.0
-            lat = lat + lrow2[2]/360.0
+            lat = lat + lrow2[2]/3600.0
             lat = lat * -1.0
             lon = lrow1[0]
             lon = lon + lrow1[1]/60.0
-            lon = lon + lrow1[2]/360.0
+            lon = lon + lrow1[2]/3600.0
             lon = lon * -1.0
         }
         if ((latlong.indexOf('N') >= 0 && latlong.indexOf('W') >= 0) && (latlong.indexOf('N') <= latlong.indexOf('W'))){
             lat = lrow1[0]
             lat = lat + lrow1[1]/60.0
-            lat = lat + lrow1[2]/360.0
+            lat = lat + lrow1[2]/3600.0
             lon = lrow2[0]
             lon = lon + lrow2[1]/60.0
-            lon = lon + lrow2[2]/360.0
+            lon = lon + lrow2[2]/3600.0
             lon = lon * -1.0
         }else if ((latlong.indexOf('N') >= 0 && latlong.indexOf('W') >= 0) && (latlong.indexOf('N') >= latlong.indexOf('W'))){
             lat = lrow2[0]
             lat = lat + lrow2[1]/60.0
-            lat = lat + lrow2[2]/360.0
+            lat = lat + lrow2[2]/3600.0
             lon = lrow1[0]
             lon = lon + lrow1[1]/60.0
-            lon = lon + lrow1[2]/360.0
+            lon = lon + lrow1[2]/3600.0
             lon = lon * -1.0     
         }
     }
@@ -430,7 +437,7 @@ function setLatLong() {
     var latlong = $("#latlong").val()
     if (latlong.indexOf('N') >= 0 || latlong.indexOf('S') >= 0 || latlong.indexOf('E') >= 0 || latlong.indexOf('W') >= 0){
         logMessage("Detected decimal degree lat long")
-
+        latlong = convertDegreesToDecimal(latlong)
     }
     console.log(latlong)
     var newjsonfeats = latLongToJson(latlong)

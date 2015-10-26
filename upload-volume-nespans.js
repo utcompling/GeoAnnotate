@@ -37,7 +37,7 @@ function uploadVolume(file, aftercb) {
   
   for (var i=0;i<users.length;i++) {
     (function(user){
-      var fileobj = new Parse.File("NESpans-"+user +"-"+ vol _ ".txt", { base64: base64 })
+      var fileobj = new Parse.File("NESpans-"+user +"-"+ vol + ".txt", { base64: base64 })
       fileobj.save().then(function() {
         var nesObject = new NESpans()
         return nesObject.save({"vol":vol, "spans":fileobj, "user":user})

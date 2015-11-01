@@ -22,13 +22,15 @@ for f in os.listdir(docgeo_directory):
 	vol = fp.split('-')[1].split('.')[0]
 	if vol not in docgeo_dict:
 		docgeo_dict[vol] = {}
+	i = 1
 	with open(fp, 'rb') as r:
 		for doc in r.read().split('|'):
 			row = doc.split('$')
 			char_start = row[1]
 			char_end = row[2]
 			geo = row[3]
-			docgeo_dict[vol][char_start+'-'+char_end] = {'geo':geo, 'annotator':annotator, 'text':voltext_dict[vol][int(char_start):int(char_end)]}
+			docgeo_dict[vol][char_start+'-'+char_end] = {'docid':i, 'doc_charstart':int(char_start), 'doc_charend':int(char_end), 'vol':vol, 'geo':geo, 'annotator':annotator, 'text':voltext_dict[vol][int(char_start):int(char_end)]}
+			i += 1
 			#print docgeo_dict[vol][char_start+'-'+char_end]
 
 vol_stop_strings = {'61':"The detachment from Army of the Tennessee re-embarks for Vicksburg, Miss.",
@@ -62,17 +64,21 @@ for f in os.listdir(toponym_directory):
 					cd = check_in_doc(docgeo_dict, vol, char_start, char_end)
 					if cd != False:
 						if cd not in topo_dict[vol]:
-							topo_dict[vol][cd] = {'text':docgeo_dict[vol][cd]['text'], 'toponyms':[{'geo':geo, 'char_start':char_start, 'char_end':char_end, 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type}]}
+							topo_dict[vol][cd] = {'text':docgeo_dict[vol][cd]['text'], 'docid':docgeo_dict[vol][cd]['docid'], 'toponyms':[{'geo':geo, 'char_start':int(char_start)-docgeo_dict[vol][cd]['doc_charstart'],
+																 'char_end':int(char_end)-docgeo_dict[vol][cd]['doc_charstart'], 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type}]}
 						else:
-							topo_dict[vol][cd]['toponyms'].append({'geo':geo, 'char_start':char_start, 'char_end':char_end, 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type})
+							topo_dict[vol][cd]['toponyms'].append({'geo':geo, 'char_start':int(char_start)-docgeo_dict[vol][cd]['doc_charstart'],
+																 'char_end':int(char_end)-docgeo_dict[vol][cd]['doc_charstart'], 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type})
 	
 			else:
 				cd = check_in_doc(docgeo_dict, vol, char_start, char_end)
 				if cd != False:
 					if cd not in topo_dict[vol]:
-							topo_dict[vol][cd] = {'text':docgeo_dict[vol][cd]['text'], 'toponyms':[{'geo':geo, 'char_start':char_start, 'char_end':char_end, 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type}]}
+							topo_dict[vol][cd] = {'vol':vol, 'docid':docgeo_dict[vol][cd]['docid'], 'text':docgeo_dict[vol][cd]['text'], 'toponyms':[{'geo':geo, 'char_start':int(char_start)-docgeo_dict[vol][cd]['doc_charstart'],
+																 'char_end':int(char_end)-docgeo_dict[vol][cd]['doc_charstart'], 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type}]}
 					else:
-						topo_dict[vol][cd]['toponyms'].append({'geo':geo, 'char_start':char_start, 'char_end':char_end, 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type})
+						topo_dict[vol][cd]['toponyms'].append({'geo':geo, 'char_start':int(char_start)-docgeo_dict[vol][cd]['doc_charstart'],
+																 'char_end':int(char_end)-docgeo_dict[vol][cd]['doc_charstart'], 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type})
 
 for vol in topo_dict:
 	for cd in topo_dict[vol]:

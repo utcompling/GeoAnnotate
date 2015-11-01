@@ -1,6 +1,6 @@
 #Make Annotation Files
 import os
-
+import json
 
 voltext_directory = "/Users/grant/devel/GeoAnnotate/volume_text"
 docgeo_directory = "/Users/grant/devel/GeoAnnotate/docgeo_spans_dloaded_103115"
@@ -62,18 +62,21 @@ for f in os.listdir(toponym_directory):
 					cd = check_in_doc(docgeo_dict, vol, char_start, char_end)
 					if cd != False:
 						if cd not in topo_dict[vol]:
-							topo_dict[vol][cd] = [{'geo':geo, 'char_start':char_start, 'char_end':char_end, 'toponym':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type}]
+							topo_dict[vol][cd] = {'text':docgeo_dict[vol][cd]['text'], 'toponyms':[{'geo':geo, 'char_start':char_start, 'char_end':char_end, 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type}]}
 						else:
-							topo_dict[vol][cd].append({'geo':geo, 'char_start':char_start, 'char_end':char_end, 'toponym':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type})
+							topo_dict[vol][cd]['toponyms'].append({'geo':geo, 'char_start':char_start, 'char_end':char_end, 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type})
 	
 			else:
 				cd = check_in_doc(docgeo_dict, vol, char_start, char_end)
 				if cd != False:
 					if cd not in topo_dict[vol]:
-							topo_dict[vol][cd] = [{'geo':geo, 'char_start':char_start, 'char_end':char_end, 'toponym':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type}]
+							topo_dict[vol][cd] = {'text':docgeo_dict[vol][cd]['text'], 'toponyms':[{'geo':geo, 'char_start':char_start, 'char_end':char_end, 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type}]}
 					else:
-						topo_dict[vol][cd].append({'geo':geo, 'char_start':char_start, 'char_end':char_end, 'toponym':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type})
+						topo_dict[vol][cd]['toponyms'].append({'geo':geo, 'char_start':char_start, 'char_end':char_end, 'entity_string':voltext_dict[vol][int(char_start):int(char_end)], 'entity_type':ne_type})
 
 for vol in topo_dict:
 	for cd in topo_dict[vol]:
-		print topo_dict[vol][cd]
+		file_name = 'vol'+vol+'_'+cd+'.json'
+		with open(file_name, 'wb') as w:
+			json.dump(topo_dict[vol][cd], w, indent=5)
+

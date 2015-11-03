@@ -34,6 +34,7 @@ for f in os.listdir(docgeo_directory):
 			#print docgeo_dict[vol][char_start+'-'+char_end]
 
 vol_stop_strings = {'61':"The detachment from Army of the Tennessee re-embarks for Vicksburg, Miss.",
+					'76':"done they will be arrested in the same manner and banished from the United States as these men",
 					'77':"On taking command, by the request of my superior officer, Colonel F. Campbell, by direction of Colonel McMillen",
 					'78':"I suggest that rations be sent to Colonel Wolfe's brigade, and that they",
 					'79': "Two prisoners brought in on train, captured near Midway."

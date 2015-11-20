@@ -72,7 +72,7 @@ OpenLayers.Feature.Vector = OpenLayers.Class(OpenLayers.Feature, {
     /**
      * APIProperty: url
      * {String} If this property is set it will be taken into account by
-     *     {<OpenLayers.HTTP>} when upadting or deleting the feature.
+     *     {<OpenLayers.HTTP>} when updating or deleting the feature.
      */
     url: null,
     
@@ -177,7 +177,7 @@ OpenLayers.Feature.Vector = OpenLayers.Class(OpenLayers.Feature, {
      * Method: onScreen
      * Determine whether the feature is within the map viewport.  This method
      *     tests for an intersection between the geometry and the viewport
-     *     bounds.  If a more effecient but less precise geometry bounds
+     *     bounds.  If a more efficient but less precise geometry bounds
      *     intersection is desired, call the method with the boundsOnly
      *     parameter true.
      *

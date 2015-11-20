@@ -217,7 +217,7 @@ OpenLayers.Format.KML = OpenLayers.Class(OpenLayers.Format.XML, {
             data = OpenLayers.Format.XML.prototype.read.apply(this, [data]);
         }
 
-        // Loop throught the following node types in this order and
+        // Loop through the following node types in this order and
         // process the nodes found 
         var types = ["Link", "NetworkLink", "Style", "StyleMap", "Placemark"];
         for(var i=0, len=types.length; i<len; ++i) {
@@ -335,7 +335,7 @@ OpenLayers.Format.KML = OpenLayers.Class(OpenLayers.Format.XML, {
      * color and opacity or null if the color is invalid.
      *
      * Parameters: 
-     * kmlColor - {String} a kml formated color
+     * kmlColor - {String} a kml formatted color
      *
      * Returns:
      * {Object}
@@ -1228,10 +1228,6 @@ OpenLayers.Format.KML = OpenLayers.Class(OpenLayers.Format.XML, {
         placemarkNode.appendChild(placemarkName);
         placemarkNode.appendChild(placemarkDesc);
 
-        // Geometry node (Point, LineString, etc. nodes)
-        var geometryNode = this.buildGeometryNode(feature.geometry);
-        placemarkNode.appendChild(geometryNode);        
-        
         // output attributes as extendedData
         if (feature.attributes) {
             var edNode = this.buildExtendedData(feature.attributes);
@@ -1239,6 +1235,10 @@ OpenLayers.Format.KML = OpenLayers.Class(OpenLayers.Format.XML, {
                 placemarkNode.appendChild(edNode);
             }
         }
+        
+        // Geometry node (Point, LineString, etc. nodes)
+        var geometryNode = this.buildGeometryNode(feature.geometry);
+        placemarkNode.appendChild(geometryNode);        
         
         return placemarkNode;
     },    

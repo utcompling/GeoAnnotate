@@ -151,13 +151,14 @@ OpenLayers.Format.WFST.v1_1_0 = OpenLayers.Class(
                 var prefix = options.featurePrefix;
                 var node = this.createElementNSPlus("wfs:Query", {
                     attributes: {
-                        typeName: (prefix ? prefix + ":" : "") +
+                        typeName: (options.featureNS ? prefix + ":" : "") +
                             options.featureType,
                         srsName: options.srsName
                     }
                 });
                 if(options.featureNS) {
-                    node.setAttribute("xmlns:" + prefix, options.featureNS);
+                    this.setAttributeNS(node, this.namespaces.xmlns,
+                        "xmlns:" + prefix, options.featureNS);
                 }
                 if(options.propertyNames) {
                     for(var i=0,len = options.propertyNames.length; i<len; i++) {

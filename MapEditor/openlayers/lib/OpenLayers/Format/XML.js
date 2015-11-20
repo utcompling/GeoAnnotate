@@ -81,7 +81,7 @@ OpenLayers.Format.XML = OpenLayers.Class(OpenLayers.Format, {
      *     the object.
      */
     initialize: function(options) {
-        if(window.ActiveXObject) {
+        if (OpenLayers.Format.XML.supportActiveX) {
             this.xmldom = new ActiveXObject("Microsoft.XMLDOM");
         }
         OpenLayers.Format.prototype.initialize.apply(this, [options]);
@@ -138,7 +138,7 @@ OpenLayers.Format.XML = OpenLayers.Class(OpenLayers.Format, {
                      * Since we want to be able to call this method on the prototype
                      * itself, this.xmldom may not exist even if in IE.
                      */
-                    if(window.ActiveXObject && !this.xmldom) {
+                    if (OpenLayers.Format.XML.supportActiveX && !this.xmldom) {
                         xmldom = new ActiveXObject("Microsoft.XMLDOM");
                     } else {
                         xmldom = this.xmldom;
@@ -588,6 +588,27 @@ OpenLayers.Format.XML = OpenLayers.Class(OpenLayers.Format, {
     },
 
     /**
+     * Method: getFirstElementChild
+     * Implementation of firstElementChild attribute that works on ie7 and ie8.
+     *
+     * Parameters:
+     * node - {DOMElement} The parent node (required).
+     *
+     * Returns:
+     * {DOMElement} The first child element.
+     */
+    getFirstElementChild: function(node) {
+        if (node.firstElementChild) {
+            return node.firstElementChild;
+        }
+        else {
+            var child = node.firstChild;
+            while (child.nodeType != 1 && (child = child.nextSibling)) {}
+            return child;
+        }
+    },
+
+    /**
      * Method: readNode
      * Shorthand for applying one of the named readers given the node
      *     namespace and local name.  Readers take two args (node, obj) and
@@ -850,7 +871,7 @@ OpenLayers.Format.XML = OpenLayers.Class(OpenLayers.Format, {
             if (document.implementation && document.implementation.createDocument) {
                 OpenLayers.Format.XML.document =
                     document.implementation.createDocument("", "", null);
-            } else if (!this.xmldom && window.ActiveXObject) {
+            } else if (!this.xmldom && OpenLayers.Format.XML.supportActiveX) {
                 this.xmldom = new ActiveXObject("Microsoft.XMLDOM");
             }
         }
@@ -895,3 +916,13 @@ OpenLayers.Format.XML.lookupNamespaceURI = OpenLayers.Function.bind(
  * like document.createCDATASection.
  */
 OpenLayers.Format.XML.document = null;
+
+/**
+ * APIFunction: OpenLayers.Format.XML.supportActiveX
+ * Returns a poolean flag to check if this browser uses ActiveX.
+ */
+OpenLayers.Format.XML.supportActiveX = (function () {
+    return (Object.getOwnPropertyDescriptor &&
+            Object.getOwnPropertyDescriptor(window, "ActiveXObject")) ||
+            ("ActiveXObject" in window);
+})();

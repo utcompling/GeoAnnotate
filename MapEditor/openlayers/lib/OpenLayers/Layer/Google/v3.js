@@ -13,7 +13,13 @@
  * 
  * Mixin providing functionality specific to the Google Maps API v3.
  * 
- * To use this layer, you must include the GMaps v3 API in your html.
+ * To use this layer, you must include the GMaps v3 API in your html. To match
+ * Google's zoom animation better with OpenLayers animated zooming, configure
+ * your map with a zoomDuration of 10:
+ *
+ * (code)
+ * new OpenLayers.Map('map', {zoomDuration: 10});
+ * (end)
  * 
  * Note that this layer configures the google.maps.map object with the
  * "disableDefaultUI" option set to true. Using UI controls that the Google
@@ -85,7 +91,8 @@ OpenLayers.Layer.Google.v3 = {
                 draggable: false,
                 disableDoubleClickZoom: true,
                 scrollwheel: false,
-                streetViewControl: false
+                streetViewControl: false,
+                tilt: (this.useTiltImages ? 45: 0)
             });
             var googleControl = document.createElement('div');
             googleControl.style.width = '100%';
@@ -147,11 +154,10 @@ OpenLayers.Layer.Google.v3 = {
                             me.setGMapVisibility(me.getVisibility());
                             me.moveTo(me.map.getCenter());
                         });
-                    } else {
-                        map.div.appendChild(container);
-                        cache.googleControl.appendChild(map.viewPortDiv);
-                        google.maps.event.trigger(this.mapObject, 'resize');
-                    }
+                    } 
+                    map.div.appendChild(container);
+                    cache.googleControl.appendChild(map.viewPortDiv);
+                    google.maps.event.trigger(this.mapObject, 'resize');
                 }
                 this.mapObject.setMapTypeId(type);                
             } else if (cache.googleControl.hasChildNodes()) {
@@ -349,3 +355,4 @@ OpenLayers.Layer.Google.v3 = {
     }
     
 };
+

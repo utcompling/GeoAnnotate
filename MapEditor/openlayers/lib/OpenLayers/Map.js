@@ -82,6 +82,9 @@ OpenLayers.Map = OpenLayers.Class({
      *     zoom has changed.
      * move - triggered after each drag, pan, or zoom
      * moveend - triggered after a drag, pan, or zoom completes
+     * zoomstart - triggered when a zoom starts. Listeners receive an object
+     *     with *center* and *zoom* properties, for the target center and zoom
+     *     level.
      * zoomend - triggered after a zoom completes
      * mouseover - triggered after mouseover the map
      * mouseout - triggered after mouseout the map
@@ -508,10 +511,6 @@ OpenLayers.Map = OpenLayers.Class({
      *     Note that if an ArgParser/Permalink control is present,
      *     and the querystring contains a zoom level, zoom will be set
      *     by that, and this option will be ignored.
-     * extent - {<OpenLayers.Bounds>|Array} The initial extent of the map.
-     *     If provided as an array, the array should consist of
-     *     four values (left, bottom, right, top).
-     *     Only specify if <center> and <zoom> are not provided.
      * 
      * Examples:
      * (code)
@@ -546,7 +545,8 @@ OpenLayers.Map = OpenLayers.Class({
     initialize: function (div, options) {
         
         // If only one argument is provided, check if it is an object.
-        if(arguments.length === 1 && typeof div === "object") {
+        var isDOMElement = OpenLayers.Util.isElement(div);
+        if(arguments.length === 1 && typeof div === "object" && !isDOMElement) {
             options = div;
             div = options && options.div;
         }
@@ -1259,7 +1259,7 @@ OpenLayers.Map = OpenLayers.Class({
      *     the layer is moved down.  Again, note that this cannot (or at least
      *     should not) be effectively used to raise base layers above overlays.
      *
-     * Paremeters:
+     * Parameters:
      * layer - {<OpenLayers.Layer>} 
      * delta - {int} 
      */
@@ -1285,6 +1285,7 @@ OpenLayers.Map = OpenLayers.Class({
 
                 // preserve center and scale when changing base layers
                 var center = this.getCachedCenter();
+                var oldResolution = this.getResolution();
                 var newResolution = OpenLayers.Util.getResolutionFromScale(
                     this.getScale(), newBaseLayer.units
                 );
@@ -1313,7 +1314,7 @@ OpenLayers.Map = OpenLayers.Class({
                         newResolution || this.resolution, true
                     );
                     // zoom and force zoom change
-                    this.setCenter(center, newZoom, false, true);
+                    this.setCenter(center, newZoom, false, oldResolution != newResolution);
                 }
 
                 this.events.triggerEvent("changebaselayer", {
@@ -1715,7 +1716,7 @@ OpenLayers.Map = OpenLayers.Class({
    
    /** 
      * APIMethod: panTo
-     * Allows user to pan to a new lonlat
+     * Allows user to pan to a new lonlat.
      * If the new lonlat is in the current extent the map will slide smoothly
      * 
      * Parameters:
@@ -1976,7 +1977,7 @@ OpenLayers.Map = OpenLayers.Class({
 
             if (centerChanged) {
                 if (!zoomChanged && this.center) { 
-                    // if zoom hasnt changed, just slide layerContainer
+                    // if zoom hasn't changed, just slide layerContainer
                     //  (must be done before setting this.center to new value)
                     this.centerLayerContainer(lonlat);
                 }
@@ -2397,44 +2398,46 @@ OpenLayers.Map = OpenLayers.Class({
             if (map.baseLayer.wrapDateLine) {
                 zoom = map.adjustZoom(zoom);
             }
+            var center = xy ?
+                map.getZoomTargetCenter(xy, map.getResolutionForZoom(zoom)) :
+                map.getCenter();
+            if (center) {
+                map.events.triggerEvent('zoomstart', {
+                    center: center,
+                    zoom: zoom
+                });
+            }
             if (map.zoomTween) {
+                map.zoomTween.stop();
                 var currentRes = map.getResolution(),
                     targetRes = map.getResolutionForZoom(zoom),
                     start = {scale: 1},
                     end = {scale: currentRes / targetRes};
-                if (map.zoomTween.playing && map.zoomTween.duration < 3 * map.zoomDuration) {
-                    // update the end scale, and reuse the running zoomTween
-                    map.zoomTween.finish = {
-                        scale: map.zoomTween.finish.scale * end.scale
-                    };
-                } else {
-                    if (!xy) {
-                        var size = map.getSize();
-                        xy = {x: size.w / 2, y: size.h / 2};
-                    }
-                    map.zoomTween.start(start, end, map.zoomDuration, {
-                        minFrameRate: 50, // don't spend much time zooming
-                        callbacks: {
-                            eachStep: function(data) {
-                                var containerOrigin = map.layerContainerOriginPx,
-                                    scale = data.scale,
-                                    dx = ((scale - 1) * (containerOrigin.x - xy.x)) | 0,
-                                    dy = ((scale - 1) * (containerOrigin.y - xy.y)) | 0;
-                                map.applyTransform(containerOrigin.x + dx, containerOrigin.y + dy, scale);
-                            },
-                            done: function(data) {
-                                map.applyTransform();
-                                var resolution = map.getResolution() / data.scale,
-                                    zoom = map.getZoomForResolution(resolution, true)
-                                map.moveTo(map.getZoomTargetCenter(xy, resolution), zoom, true);
-                            }
-                        }
-                    });
+                if (!xy) {
+                    var size = map.getSize();
+                    xy = {x: size.w / 2, y: size.h / 2};
                 }
+                map.zoomTween.start(start, end, map.zoomDuration, {
+                    minFrameRate: 50, // don't spend much time zooming
+                    callbacks: {
+                        eachStep: function(data) {
+                            var containerOrigin = map.layerContainerOriginPx,
+                                scale = data.scale,
+                                dx = ((scale - 1) * (containerOrigin.x - xy.x)) | 0,
+                                dy = ((scale - 1) * (containerOrigin.y - xy.y)) | 0;
+                            map.applyTransform(containerOrigin.x + dx, containerOrigin.y + dy, scale);
+                        },
+                        done: function(data) {
+                            map.applyTransform();
+                            var resolution = map.getResolution() / data.scale,
+                                newZoom = map.getZoomForResolution(resolution, true),
+                                newCenter = data.scale === 1 ? center :
+                                        map.getZoomTargetCenter(xy, resolution);
+                            map.moveTo(newCenter, newZoom);
+                        }
+                    }
+                });
             } else {
-                var center = xy ?
-                    map.getZoomTargetCenter(xy, map.getResolutionForZoom(zoom)) :
-                    null;
                 map.setCenter(center, zoom);
             }
         }
@@ -2445,6 +2448,9 @@ OpenLayers.Map = OpenLayers.Class({
      * 
      */
     zoomIn: function() {
+        if (this.zoomTween) {
+            this.zoomTween.stop();
+        }
         this.zoomTo(this.getZoom() + 1);
     },
     
@@ -2453,6 +2459,9 @@ OpenLayers.Map = OpenLayers.Class({
      * 
      */
     zoomOut: function() {
+        if (this.zoomTween) {
+            this.zoomTween.stop();
+        }
         this.zoomTo(this.getZoom() - 1);
     },
 

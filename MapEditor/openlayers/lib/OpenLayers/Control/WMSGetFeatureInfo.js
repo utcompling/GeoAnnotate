@@ -403,8 +403,8 @@ OpenLayers.Control.WMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control, {
         } else {
             if (OpenLayers.Util.isArray(layer.params.LAYERS)) {
                 styleNames = new Array(layer.params.LAYERS.length);
-            } else { // Assume it's a String
-                styleNames = layer.params.LAYERS.replace(/[^,]/g, "");
+            } else {
+                styleNames = layer.params.LAYERS.toString().replace(/[^,]/g, "");
             }
         }
         return styleNames;
@@ -507,7 +507,16 @@ OpenLayers.Control.WMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control, {
         if(!doc || !doc.documentElement) {
             doc = request.responseText;
         }
-        var features = this.format.read(doc);
+
+        var features = [];
+        var responseHeaders = request.getAllResponseHeaders();
+        if(responseHeaders && this.infoFormat === "application/json" && responseHeaders.indexOf("application/json") !== -1) {
+            features = new OpenLayers.Format.GeoJSON().read(doc);
+        }
+        else {
+            features = this.format.read(doc);
+        }
+
         if (this.drillDown === false) {
             this.triggerGetFeatureInfo(request, xy, features);
         } else {
@@ -519,6 +528,7 @@ OpenLayers.Control.WMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control, {
             } else {
             this._features = (this._features || []).concat(features);
             }
+
             if (this._requestCount === this._numRequests) {
                 this.triggerGetFeatureInfo(request, xy, this._features.concat());
                 delete this._features;

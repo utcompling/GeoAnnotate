@@ -239,7 +239,7 @@ OpenLayers.Control.GetFeature = OpenLayers.Class(OpenLayers.Control, {
         if(this.hover) {
             this.handlers.hover = new OpenLayers.Handler.Hover(
                 this, {'move': this.cancelHover, 'pause': this.selectHover},
-                OpenLayers.Util.extend(this.handlerOptions.hover, {
+                OpenLayers.Util.applyDefaults(this.handlerOptions.hover, {
                     'delay': 250,
                     'pixelTolerance': 2
                 })
@@ -557,7 +557,7 @@ OpenLayers.Control.GetFeature = OpenLayers.Class(OpenLayers.Control, {
      * Unselect all selected features.
      */
     unselectAll: function() {
-        // we'll want an option to supress notification here
+        // we'll want an option to suppress notification here
         for(var fid in this.features) {
             this.unselect(this.features[fid]);
         }

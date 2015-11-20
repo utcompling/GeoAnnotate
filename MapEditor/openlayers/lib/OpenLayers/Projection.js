@@ -104,7 +104,7 @@ OpenLayers.Projection = OpenLayers.Class({
     /**
      * Method: equals
      * Test equality of two projection instances.  Determines equality based
-     *     soley on the projection code.
+     *     solely on the projection code.
      *
      * Returns:
      * {Boolean} The two projections are equivalent.
@@ -166,23 +166,27 @@ OpenLayers.Projection.transforms = {};
  * APIProperty: defaults
  * {Object} Defaults for the SRS codes known to OpenLayers (currently
  * EPSG:4326, CRS:84, urn:ogc:def:crs:EPSG:6.6:4326, EPSG:900913, EPSG:3857,
- * EPSG:102113 and EPSG:102100). Keys are the SRS code, values are units,
- * maxExtent (the validity extent for the SRS) and yx (true if this SRS is
- * known to have a reverse axis order).
+ * EPSG:102113, EPSG:102100 and OSGEO:41001). Keys are the SRS code, values are
+ * units, maxExtent (the validity extent for the SRS in projected coordinates),
+ * worldExtent (the world's extent in EPSG:4326) and yx (true if this SRS
+ * is known to have a reverse axis order).
  */
 OpenLayers.Projection.defaults = {
     "EPSG:4326": {
         units: "degrees",
         maxExtent: [-180, -90, 180, 90],
+        worldExtent: [-180, -90, 180, 90],
         yx: true
     },
     "CRS:84": {
         units: "degrees",
-        maxExtent: [-180, -90, 180, 90]
+        maxExtent: [-180, -90, 180, 90],
+        worldExtent: [-180, -90, 180, 90]
     },
     "EPSG:900913": {
         units: "m",
-        maxExtent: [-20037508.34, -20037508.34, 20037508.34, 20037508.34]
+        maxExtent: [-20037508.34, -20037508.34, 20037508.34, 20037508.34],
+        worldExtent: [-180, -89, 180, 89]
     }
 };
 
@@ -266,9 +270,9 @@ OpenLayers.Projection.nullTransform = function(point) {
 
 /**
  * Note: Transforms for web mercator <-> geographic
- * OpenLayers recognizes EPSG:3857, EPSG:900913, EPSG:102113 and EPSG:102100.
- * OpenLayers originally started referring to EPSG:900913 as web mercator.
- * The EPSG has declared EPSG:3857 to be web mercator.
+ * OpenLayers recognizes EPSG:3857, EPSG:900913, EPSG:102113, EPSG:102100 and 
+ * OSGEO:41001. OpenLayers originally started referring to EPSG:900913 as web
+ * mercator. The EPSG has declared EPSG:3857 to be web mercator.
  * ArcGIS 10 recognizes the EPSG:3857, EPSG:102113, and EPSG:102100 as
  * equivalent.  See http://blogs.esri.com/Dev/blogs/arcgisserver/archive/2009/11/20/ArcGIS-Online-moving-to-Google-_2F00_-Bing-tiling-scheme_3A00_-What-does-this-mean-for-you_3F00_.aspx#12084.
  * For geographic, OpenLayers recognizes EPSG:4326, CRS:84 and
@@ -309,7 +313,7 @@ OpenLayers.Projection.nullTransform = function(point) {
     }
     
     // list of equivalent codes for web mercator
-    var mercator = ["EPSG:900913", "EPSG:3857", "EPSG:102113", "EPSG:102100"],
+    var mercator = ["EPSG:900913", "EPSG:3857", "EPSG:102113", "EPSG:102100", "OSGEO:41001"],
         geographic = ["CRS:84", "urn:ogc:def:crs:EPSG:6.6:4326", "EPSG:4326"],
         i;
     for (i=mercator.length-1; i>=0; --i) {

@@ -93,7 +93,7 @@ OpenLayers.Layer.MapServer = OpenLayers.Class(OpenLayers.Layer.Grid, {
         // Make a list, so that getFullRequestString uses literal "," 
         var extent = [bounds.left, bounds. bottom, bounds.right, bounds.top];
 
-        var imageSize = this.getImageSize(); 
+        var imageSize = this.getImageSize(bounds); 
         
         // make lists, so that literal ','s are used 
         var url = this.getFullRequestString(
@@ -151,7 +151,7 @@ OpenLayers.Layer.MapServer = OpenLayers.Class(OpenLayers.Layer.Grid, {
         // requestString always starts with url
         var requestString = url;        
 
-        // MapServer needs '+' seperating things like bounds/height/width.
+        // MapServer needs '+' separating things like bounds/height/width.
         //   Since typically this is URL encoded, we use a slight hack: we
         //  depend on the list-like functionality of getParameterString to
         //  leave ',' only in the case of list items (since otherwise it is

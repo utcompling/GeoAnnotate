@@ -36,6 +36,10 @@ OpenLayers.Events.featureclick = OpenLayers.Class({
      */
     provides: ["featureclick", "nofeatureclick", "featureover", "featureout"],
     
+    lastClientX: 0,
+
+    lastClientY: 0,
+    
     /**
      * Constructor: OpenLayers.Events.featureclick
      * Create a new featureclick event type.
@@ -148,6 +152,15 @@ OpenLayers.Events.featureclick = OpenLayers.Class({
      */
     onMousemove: function(evt) {
         delete this.startEvt;
+        var clientX = evt.clientX;
+        var clientY = evt.clientY;
+	//this is a fix for Chrome 34. Mousemove event is triggered even cursor did not move.
+        if (this.lastClientX == clientX && this.lastClientY == clientY) {
+            return;
+        } else {
+            this.lastClientX = clientX;
+            this.lastClientY = clientY;
+        }
         var features = this.getFeatures(evt);
         var over = {}, newly = [], feature;
         for (var i=0, len=features.length; i<len; ++i) {
@@ -223,16 +236,17 @@ OpenLayers.Events.featureclick = OpenLayers.Class({
     getFeatures: function(evt) {
         var x = evt.clientX, y = evt.clientY,
             features = [], targets = [], layers = [],
-            layer, target, feature, i, len;
+            layer, renderer, target, feature, i, len, featureId;
         // go through all layers looking for targets
         for (i=this.map.layers.length-1; i>=0; --i) {
             layer = this.map.layers[i];
+            renderer = layer.renderer;
             if (layer.div.style.display !== "none") {
-                if (layer.renderer instanceof OpenLayers.Renderer.Elements) {
+                if (renderer instanceof OpenLayers.Renderer.Elements) {
                     if (layer instanceof OpenLayers.Layer.Vector) {
                         target = document.elementFromPoint(x, y);
-                        while (target && target._featureId) {
-                            feature = layer.getFeatureById(target._featureId);
+                        while (target && (featureId = renderer.getFeatureIdFromEvent({target: target}))) {
+                            feature = layer.getFeatureById(featureId);
                             if (feature) {
                                 features.push(feature);
                                 target.style.display = "none";
@@ -246,8 +260,8 @@ OpenLayers.Events.featureclick = OpenLayers.Class({
                     }
                     layers.push(layer);
                     layer.div.style.display = "none";
-                } else if (layer.renderer instanceof OpenLayers.Renderer.Canvas) {
-                    feature = layer.renderer.getFeatureIdFromEvent(evt);
+                } else if (renderer instanceof OpenLayers.Renderer.Canvas) {
+                    feature = renderer.getFeatureIdFromEvent(evt);
                     if (feature) {
                         features.push(feature);
                         layers.push(layer);

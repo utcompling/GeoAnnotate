@@ -5,6 +5,10 @@ A screenshot of the application in action:
 
 ![toponym-annotate](https://github.com/utcompling/GeoAnnotate/blob/master/GeoAnnotate_Screenshot.png)
 
+## WarOfTheRebellion corpus
+
+The associated annotated corpus built using GeoAnnotate from the War of the Rebellion (a large set of American Civil War archives) is available [here](https://github.com/utcompling/WarOfTheRebellion/).
+
 ## Setting up GeoAnnotate to run locally
 
 ### Mac OSX
